@@ -28,7 +28,8 @@ for folder in admin/src/*; do
     # Delete the temporary branch
     git checkout main
     git branch -D temp-update-branch
-
-    git push origin $version -f
   fi
 done
+
+# Push new tags
+git push --tags -f
