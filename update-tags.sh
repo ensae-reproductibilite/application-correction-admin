@@ -29,6 +29,6 @@ for folder in admin/src/*; do
     git checkout main
     git branch -D temp-update-branch
 
-    git push --tags -f
+    git push origin $version -f
   fi
 done
