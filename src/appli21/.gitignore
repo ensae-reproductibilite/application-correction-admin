@@ -1,0 +1,8 @@
+config.yaml
+__pycache__/
+titanic/
+model.joblib
+/.quarto/
+*.html
+*_files
+_site/
