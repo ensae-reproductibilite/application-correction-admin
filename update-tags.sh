@@ -1,7 +1,10 @@
 #!/bin/bash
 
+# Remove `.git/` from `admin` to prevent conflict
+rm -rf admin/.git
+
 # Iterate over each subfolder in the tmp directory
-for folder in .gen/*; do
+for folder in admin/src/*; do
   if [ -d "$folder" ]; then
     # Extract the application version name (e.g., 'appli17') from the folder path
     version=${folder##*/}
@@ -11,20 +14,16 @@ for folder in .gen/*; do
     # Checkout to a temporary branch for the update
     git checkout -b temp-update-branch
 
-    find . -mindepth 1 -maxdepth 1 ! -name ".gen" ! -name ".git" -exec rm -rf {} \;
+    # Clean branch
+    find . -mindepth 1 -maxdepth 1 ! -name "admin" ! -name ".git" ! -name ".github" -exec rm -rf {} \;
 
     # Copy new files from the corresponding tmp/version subfolder
     cp -r $folder/* .
-    rm -rf .gen/
 
-    # Add changes to git
-    git add .
-
-    # Commit the changes
+    # Add, commit, tag
+    git add -- . ':!admin'
     git commit -m "Update $version"
-
-    # Move the tag to the new commit
-    git tag -f $version
+    git tag -f $version  
 
     # Delete the temporary branch
     git checkout main
