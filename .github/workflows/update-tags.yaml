@@ -1,0 +1,24 @@
+name: Update tags
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  update-tags:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up GitHub Actions Bot 
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions Bot"
+
+    - name: Run update script
+      env: 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git clone https://github-actions[bot]:${GITHUB_TOKEN}@github.com/ensae-reproductibilite/application-correction-dev.git
+        cd application-correction-dev
+        git clone https://github.com/ensae-reproductibilite/application-correction-admin.git admin
+        ./admin/update-tags.sh
