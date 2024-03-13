@@ -18,7 +18,7 @@ jobs:
       env: 
         GH_PAT: ${{ secrets.GH_PAT }}
       run: |
-        git clone https://github-actions[bot]:${GH_PAT}@github.com/ensae-reproductibilite/application-correction-dev.git
-        cd application-correction-dev
+        git clone https://github-actions[bot]:${GH_PAT}@github.com/ensae-reproductibilite/application-correction.git
+        cd application-correction
         git clone https://github.com/ensae-reproductibilite/application-correction-admin.git admin
         ./admin/update-tags.sh
