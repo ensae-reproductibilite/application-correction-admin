@@ -2,76 +2,60 @@
 Prediction de la survie d'un individu sur le Titanic
 """
 
-# GESTION ENVIRONNEMENT --------------------------------
-
-import os
 import argparse
-import yaml
 import pandas as pd
-import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
+from import_data import import_yaml_config, split_and_count
+from build_pipeline import split_train_test, create_pipeline
+from train_evaluate import evaluate_model
 
-import import_data as imp
-import build_features as bf
-import train_evaluate as te
-
-
-
-# PARAMETRES -------------------------------
-
-# Paramètres ligne de commande
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
-parser.add_argument(
-    "--n_trees", type=int, default=20, help="Nombre d'arbres"
-)
+parser.add_argument("--n_trees", type=int, default=20, help="Nombre d'arbres")
 args = parser.parse_args()
 
-# Paramètres YAML
-config = imp.import_yaml_config("config.yaml")
-API_TOKEN = config.get("jeton_api")
-LOCATION_TRAIN = config.get("train_path", "train.csv")
-LOCATION_TEST = config.get("test_path", "test.csv")
-TEST_FRACTION = config.get("test_fraction", .1)
-N_TREES = args.n_trees
+n_trees = args.n_trees
 
 
-# FEATURE ENGINEERING --------------------------------
+config = import_yaml_config("config.yaml")
+jeton_api = config.get("jeton_api")
+data_path = config.get("data_path", "data.csv")
 
-TrainingData = imp.import_data(LOCATION_TRAIN)
-TestData = imp.import_data(LOCATION_TEST)
-
-# Create a 'Title' variable
-TrainingData = imp.create_variable_title(TrainingData)
-TestData = imp.create_variable_title(TestData)
+MAX_DEPTH = None
+MAX_FEATURES = "sqrt"
 
 
-## IMPUTATION DES VARIABLES ================
+# IMPORT ET EXPLORATION DONNEES --------------------------------
+
+TrainingData = pd.read_csv("data.csv")
 
 
-TrainingData = bf.fill_na_titanic(TrainingData)
-TestData = bf.fill_na_titanic(TestData)
-
-TrainingData = bf.label_encoder_titanic(TrainingData)
-TestData = bf.label_encoder_titanic(TestData)
+# Usage example:
+ticket_count = split_and_count(TrainingData, "Ticket", "/")
+name_count = split_and_count(TrainingData, "Name", ",")
 
 
-# Making a new feature hasCabin which is 1 if cabin is available else 0
-TrainingData = bf.check_has_cabin(TrainingData)
-TestData = bf.check_has_cabin(TestData)
+# SPLIT TRAIN/TEST --------------------------------
 
-TrainingData = bf.ticket_length(TrainingData)
-TestData = bf.ticket_length(TestData)
+X_train, X_test, y_train, y_test = split_train_test(TrainingData, test_size=0.1)
 
 
+# PIPELINE ----------------------------
 
-# MODELISATION: RANDOM FOREST ----------------------------
 
-model = te.random_forest_titanic(
-    data=TrainingData,
-    fraction_test=TEST_FRACTION,
-    n_trees=N_TREES
+# Create the pipeline
+pipe = create_pipeline(
+    n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
 )
+
+
+# ESTIMATION ET EVALUATION ----------------------
+
+pipe.fit(X_train, y_train)
+
+
+# Evaluate the model
+score, matrix = evaluate_model(pipe, X_test, y_test)
+print(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
+print(20 * "-")
+print("matrice de confusion")
+print(matrix)

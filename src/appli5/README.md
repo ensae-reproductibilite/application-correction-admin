@@ -6,7 +6,5 @@ ayant la structure suivante:
 
 ```yaml
 jeton_api: ####
-train_path: ####
-test_path: ####
-test_fraction: ####
+data_path: ####
 ```
