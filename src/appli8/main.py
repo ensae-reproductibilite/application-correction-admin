@@ -3,6 +3,7 @@ Prediction de la survie d'un individu sur le Titanic
 """
 
 import argparse
+import pathlib
 import pandas as pd
 
 from src.data.import_data import import_yaml_config, split_and_count
@@ -37,6 +38,9 @@ name_count = split_and_count(TrainingData, "Name", ",")
 
 
 # SPLIT TRAIN/TEST --------------------------------
+
+p = pathlib.Path("data/derived/")
+p.mkdir(parents=True, exist_ok=True)
 
 X_train, X_test, y_train, y_test = split_train_test(
     TrainingData, test_size=0.1,
