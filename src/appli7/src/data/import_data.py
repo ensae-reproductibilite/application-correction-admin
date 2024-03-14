@@ -1,9 +1,16 @@
 import os
 import yaml
-import pandas as pd
 
 
 def import_yaml_config(filename: str = "toto.yaml") -> dict:
+    """Import configuration from YAML file
+
+    Args:
+        filename (str, optional): _description_. Defaults to "toto.yaml".
+
+    Returns:
+        dict: _description_
+    """
     dict_config = {}
     if os.path.exists(filename):
         with open(filename, "r", encoding="utf-8") as stream:
@@ -11,15 +18,17 @@ def import_yaml_config(filename: str = "toto.yaml") -> dict:
     return dict_config
 
 
-def import_data(path: str) -> pd.DataFrame:
-    """Import Titanic datasets
-    Args:
-        path (str): File location
-    Returns:
-        pd.DataFrame: Titanic dataset
+def split_and_count(df, column, separator):
     """
+    Split a column in a DataFrame by a separator and count the number of resulting elements.
 
-    data = pd.read_csv(path)
-    data = data.drop(columns="PassengerId")
+    Args:
+        df (pandas.DataFrame): The DataFrame containing the column to split.
+        column (str): The name of the column to split.
+        separator (str): The separator to use for splitting.
 
-    return data
+    Returns:
+        pandas.Series: A Series containing the count of elements after splitting.
+
+    """
+    return df[column].str.split(separator).str.len()
