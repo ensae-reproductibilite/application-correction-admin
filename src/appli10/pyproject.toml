@@ -5,6 +5,9 @@ description = "Awesome Machine Learning project"
 authors = ["Daffy Duck <daffy.duck@fauxmail.fr>", "Mickey Mouse"]
 license = "MIT"
 readme = "README.md"
+exclude = [
+    "data/"
+]
 
 [build-system]
 requires = ["poetry-core"]
