@@ -1,3 +1,12 @@
+Voici les ressources pour voir ou revoir celle-ci:
+
+Vidéo (il manque 1mn je pense, le temps que je retrouve le bouton "Enregistrer")
+Slides. Eric a ajouté quelques ouvrages de références à la fin.
+
+
+Question sur l'expérience (nombre d'années depuis sortie école)
+MC Sébastien Da Veiga
+Fil
 name: titanic
 channels:
   - conda-forge
@@ -47,3 +56,4 @@ dependencies:
   - xz=5.2.6=h166bdaf_0
   - yaml=0.2.5=h7f98852_2
 prefix: /opt/mamba/envs/titanic
+

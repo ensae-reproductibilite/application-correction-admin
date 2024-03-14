@@ -6,17 +6,11 @@ ayant la structure suivante:
 
 ```yaml
 jeton_api: ####
-train_path: ####
-test_path: ####
-test_fraction: ####
+data_path: https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.csv
 ```
 
-## Réutilisation
+Pour installer les dépendances
 
-Pour pouvoir tester ce projet, le code suivant
-suffit:
-
-```python
+```bash
 pip install -r requirements.txt
-python main.py
 ```
