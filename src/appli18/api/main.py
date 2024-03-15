@@ -8,7 +8,7 @@ model = load('model.joblib')
 
 app = FastAPI(
     title="Prédiction de survie sur le Titanic",
-    description=
+    descriptaion=
     "Application de prédiction de survie sur le Titanic 🚢 <br>Une version par API pour faciliter la réutilisation du modèle 🚀" +\
         "<br><br><img src=\"https://media.vogue.fr/photos/5faac06d39c5194ff9752ec9/1:1/w_2404,h_2404,c_limit/076_CHL_126884.jpg\" width=\"200\">"
     )
@@ -29,32 +29,20 @@ def show_welcome_page():
 
 @app.get("/predict", tags=["Predict"])
 async def predict(
-    pclass: int = 3,
     sex: str = "female",
     age: float = 29.0,
-    sib_sp: int = 1,
-    parch: int = 1,
     fare: float = 16.5,
-    embarked: str = "S",
-    title: str = "Miss.",
-    has_cabin: int = 1,
-    ticket_len: int = 7
+    embarked: str = "S"
 ) -> str:
     """
     """
 
     df = pd.DataFrame(
         {
-            "Pclass": [pclass],
             "Sex": [sex],
             "Age": [age],
-            "SibSp": [sib_sp],
-            "parch": [parch],
             "Fare": [fare],
             "Embarked": [embarked],
-            "Title": [title],
-            "hasCabin": [has_cabin],
-            "Ticket_Len": [ticket_len] 
         }
     )
 
