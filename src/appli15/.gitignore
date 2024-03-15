@@ -1,4 +1,4 @@
 config.yaml
 __pycache__/
-data/*.csv
+data/**/*.csv
 titanic/

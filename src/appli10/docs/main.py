@@ -8,7 +8,6 @@ import pandas as pd
 
 from titanicml import (
     import_yaml_config,
-    split_and_count,
     split_train_test, create_pipeline,
     evaluate_model
 )
@@ -30,20 +29,12 @@ MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
 
 
-# IMPORT ET EXPLORATION DONNEES --------------------------------
-
-TrainingData = pd.read_csv(data_path)
-
-
-# Usage example:
-ticket_count = split_and_count(TrainingData, "Ticket", "/")
-name_count = split_and_count(TrainingData, "Name", ",")
-
-
-# SPLIT TRAIN/TEST --------------------------------
+# IMPORT ET STRUCTURATION DONNEES --------------------------------
 
 p = pathlib.Path("data/derived/")
 p.mkdir(parents=True, exist_ok=True)
+
+TrainingData = pd.read_csv(data_path)
 
 X_train, X_test, y_train, y_test = split_train_test(
     TrainingData, test_size=0.1,
