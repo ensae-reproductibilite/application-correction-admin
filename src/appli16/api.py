@@ -29,32 +29,20 @@ def show_welcome_page():
 
 @app.get("/predict", tags=["Predict"])
 async def predict(
-    pclass: int = 3,
     sex: str = "female",
     age: float = 29.0,
-    sib_sp: int = 1,
-    parch: int = 1,
     fare: float = 16.5,
-    embarked: str = "S",
-    title: str = "Miss.",
-    has_cabin: int = 1,
-    ticket_len: int = 7
+    embarked: str = "S"
 ) -> str:
     """
     """
 
     df = pd.DataFrame(
         {
-            "Pclass": [pclass],
             "Sex": [sex],
             "Age": [age],
-            "SibSp": [sib_sp],
-            "parch": [parch],
             "Fare": [fare],
             "Embarked": [embarked],
-            "Title": [title],
-            "hasCabin": [has_cabin],
-            "Ticket_Len": [ticket_len] 
         }
     )
 
