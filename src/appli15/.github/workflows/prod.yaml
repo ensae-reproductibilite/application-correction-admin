@@ -1,6 +1,11 @@
 name: Construction image Docker
 
-on: [push]
+on:
+  push:
+    branches:
+      - main
+      - dev
+
 
 jobs:
   docker:
