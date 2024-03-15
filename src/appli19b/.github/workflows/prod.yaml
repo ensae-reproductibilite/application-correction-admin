@@ -6,6 +6,7 @@ on:
       - main
       - dev
     tags:
+      - 'v*.*.*'
 
 jobs:
   docker:
