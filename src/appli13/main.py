@@ -6,7 +6,7 @@ import argparse
 import pathlib
 import pandas as pd
 
-from src.data.import_data import import_yaml_config, split_and_count
+from src.data.import_data import import_yaml_config
 from src.pipeline.build_pipeline import split_train_test, create_pipeline
 from src.models.train_evaluate import evaluate_model
 
@@ -18,7 +18,6 @@ n_trees = args.n_trees
 
 URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.csv"
 config = import_yaml_config("configuration/config.yaml")
-jeton_api = config.get("jeton_api")
 data_path = config.get("data_path", URL_RAW)
 data_train_path = config.get("train_path", "data/derived/train.csv")
 data_test_path = config.get("test_path", "data/derived/test.csv")
@@ -27,20 +26,12 @@ MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
 
 
-# IMPORT ET EXPLORATION DONNEES --------------------------------
-
-TrainingData = pd.read_csv(data_path)
-
-
-# Usage example:
-ticket_count = split_and_count(TrainingData, "Ticket", "/")
-name_count = split_and_count(TrainingData, "Name", ",")
-
-
-# SPLIT TRAIN/TEST --------------------------------
+# IMPORT ET STRUCTURATION DONNEES --------------------------------
 
 p = pathlib.Path("data/derived/")
 p.mkdir(parents=True, exist_ok=True)
+
+TrainingData = pd.read_csv(data_path)
 
 X_train, X_test, y_train, y_test = split_train_test(
     TrainingData, test_size=0.1,
