@@ -20,6 +20,16 @@ for folder in admin/src/*; do
     # Copy new files from the corresponding tmp/version subfolder
     cp -r $folder/* .
 
+    # Copy .gitignore if it exists
+    if [ -f "$folder/.gitignore" ]; then
+      cp "$folder/.gitignore" .
+    fi
+
+    # Copy .github/ directory if it exists
+    if [ -d "$folder/.github" ]; then
+      cp -r "$folder/.github" .
+    fi
+
     # Add, commit, tag
     git add -- . ':!admin'
     git commit -m "Update $version"
