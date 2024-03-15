@@ -6,6 +6,7 @@ on:
       - main
       - dev
 
+
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -27,4 +28,4 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: linogaliana/application-correction:v0.0.2
+          tags: linogaliana/application-correction:latest
