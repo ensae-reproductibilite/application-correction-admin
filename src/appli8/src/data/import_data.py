@@ -1,3 +1,5 @@
+from loguru import logger
+
 @logger.catch
 def split_and_count(df, column, separator):
     """

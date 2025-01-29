@@ -1,3 +1,5 @@
+from loguru import logger
+
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer

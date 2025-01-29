@@ -1,4 +1,4 @@
-from sklearn.metrics import confusion_matrix
+from loguru import logger
 
 @logger.catch
 def evaluate_model(pipe, X_test, y_test):
