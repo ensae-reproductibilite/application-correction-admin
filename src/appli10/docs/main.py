@@ -5,6 +5,7 @@ Prediction de la survie d'un individu sur le Titanic
 import os
 from dotenv import load_dotenv
 import argparse
+from loguru import logger
 
 import pathlib
 import pandas as pd
@@ -16,6 +17,7 @@ from titanicml import (
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
+logger.add("recording.log", rotation="500 MB")
 load_dotenv()
 
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
@@ -35,9 +37,9 @@ MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
 
 if jeton_api.startswith("$"):
-    print("API token has been configured properly")
+    logger.info("API token has been configured properly")
 else:
-    print("API token has not been configured")
+    logger.warning("API token has not been configured")
 
 
 # IMPORT ET STRUCTURATION DONNEES --------------------------------
@@ -70,7 +72,8 @@ pipe.fit(X_train, y_train)
 
 # Evaluate the model
 score, matrix = evaluate_model(pipe, X_test, y_test)
-print(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
-print(20 * "-")
-print("matrice de confusion")
-print(matrix)
+
+logger.success(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
+logger.debug(20 * "-")
+logger.info("Matrice de confusion")
+logger.debug(matrix)
