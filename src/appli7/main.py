@@ -8,9 +8,9 @@ import argparse
 
 import pandas as pd
 
-from import_data import split_and_count
-from build_pipeline import split_train_test, create_pipeline
-from train_evaluate import evaluate_model
+from src.data.import_data import split_and_count
+from src.pipeline.build_pipeline import split_train_test, create_pipeline
+from src.models.train_evaluate import evaluate_model
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
@@ -38,7 +38,7 @@ else:
 
 # IMPORT ET EXPLORATION DONNEES --------------------------------
 
-TrainingData = pd.read_csv("data.csv")
+TrainingData = pd.read_csv(data_path)
 
 
 # Usage example:
