@@ -1,3 +1,4 @@
 pandas
 PyYAML
 scikit-learn
+python-dotenv
