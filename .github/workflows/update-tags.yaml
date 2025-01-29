@@ -16,7 +16,7 @@ jobs:
 
     - name: Run update script
       env:
-        GH_PAT: ${{ secrets.GH_PAT_NEW }}
+        GH_PAT: ${{ secrets.GH_PAT }}
       run: |
         git clone https://github-actions[bot]:${GH_PAT}@github.com/ensae-reproductibilite/application-correction.git
         cd application-correction
