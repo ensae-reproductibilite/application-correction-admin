@@ -1,3 +1,4 @@
+@logger.catch
 def split_and_count(df, column, separator):
     """
     Split a column in a DataFrame by a separator and count the number of resulting elements.

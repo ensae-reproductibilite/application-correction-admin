@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 
 import pandas as pd
 
-
+@logger.catch
 def split_train_test(data, test_size, train_path="train.csv", test_path="test.csv"):
     """
     Split the data into training and testing sets based on the specified test size.
@@ -36,7 +36,7 @@ def split_train_test(data, test_size, train_path="train.csv", test_path="test.cs
 
     return X_train, X_test, y_train, y_test
 
-
+@logger.catch
 def create_pipeline(
     n_trees,
     numeric_features=["Age", "Fare"],
