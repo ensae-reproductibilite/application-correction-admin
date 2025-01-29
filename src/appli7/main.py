@@ -2,33 +2,43 @@
 Prediction de la survie d'un individu sur le Titanic
 """
 
+import os
+from dotenv import load_dotenv
 import argparse
+
 import pandas as pd
 
-from src.data.import_data import import_yaml_config, split_and_count
-from src.pipeline.build_pipeline import split_train_test, create_pipeline
-from src.models.train_evaluate import evaluate_model
+from import_data import split_and_count
+from build_pipeline import split_train_test, create_pipeline
+from train_evaluate import evaluate_model
+
+# ENVIRONMENT CONFIGURATION ---------------------------
+
+load_dotenv()
 
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
-parser.add_argument("--n_trees", type=int, default=20, help="Nombre d'arbres")
+parser.add_argument(
+    "--n_trees", type=int, default=20, help="Nombre d'arbres"
+)
 args = parser.parse_args()
 
 n_trees = args.n_trees
-
-
-config = import_yaml_config("configuration/config.yaml")
-jeton_api = config.get("jeton_api")
-data_path = config.get("data_path", "data/raw/data.csv")
-data_train_path = config.get("train_path", "data/derived/train.csv")
-data_test_path = config.get("test_path", "data/derived/test.csv")
-
+jeton_api = os.environ.get("JETON_API", "")
+data_path = os.environ.get("data_path", "data/raw/data.csv")
+data_train_path = os.environ.get("train_path", "data/derived/train.csv")
+data_test_path = os.environ.get("test_path", "data/derived/test.csv")
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
+
+if jeton_api.startswith("$"):
+    print("API token has been configured properly")
+else:
+    print("API token has not been configured")
 
 
 # IMPORT ET EXPLORATION DONNEES --------------------------------
 
-TrainingData = pd.read_csv(data_path)
+TrainingData = pd.read_csv("data.csv")
 
 
 # Usage example:
@@ -38,11 +48,7 @@ name_count = split_and_count(TrainingData, "Name", ",")
 
 # SPLIT TRAIN/TEST --------------------------------
 
-X_train, X_test, y_train, y_test = split_train_test(
-    TrainingData, test_size=0.1,
-    train_path=data_train_path,
-    test_path=data_test_path
-)
+X_train, X_test, y_train, y_test = split_train_test(TrainingData, test_size=0.1)
 
 
 # PIPELINE ----------------------------

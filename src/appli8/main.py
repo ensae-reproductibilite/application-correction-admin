@@ -2,28 +2,41 @@
 Prediction de la survie d'un individu sur le Titanic
 """
 
+import os
+from dotenv import load_dotenv
 import argparse
+
 import pathlib
 import pandas as pd
 
-from src.data.import_data import import_yaml_config
 from src.pipeline.build_pipeline import split_train_test, create_pipeline
 from src.models.train_evaluate import evaluate_model
 
+
+# ENVIRONMENT CONFIGURATION ---------------------------
+
+load_dotenv()
+
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
-parser.add_argument("--n_trees", type=int, default=20, help="Nombre d'arbres")
+parser.add_argument(
+    "--n_trees", type=int, default=20, help="Nombre d'arbres"
+)
 args = parser.parse_args()
 
-n_trees = args.n_trees
-
 URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.csv"
-config = import_yaml_config("configuration/config.yaml")
-data_path = config.get("data_path", URL_RAW)
-data_train_path = config.get("train_path", "data/derived/train.csv")
-data_test_path = config.get("test_path", "data/derived/test.csv")
 
+n_trees = args.n_trees
+jeton_api = os.environ.get("JETON_API", "")
+data_path = os.environ.get("data_path", URL_RAW)
+data_train_path = os.environ.get("train_path", "data/derived/train.csv")
+data_test_path = os.environ.get("test_path", "data/derived/test.csv")
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
+
+if jeton_api.startswith("$"):
+    print("API token has been configured properly")
+else:
+    print("API token has not been configured")
 
 
 # IMPORT ET STRUCTURATION DONNEES --------------------------------
