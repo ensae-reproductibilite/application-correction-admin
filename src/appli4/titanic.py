@@ -6,8 +6,6 @@ import os
 from dotenv import load_dotenv
 import argparse
 
-import os
-import argparse
 import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
@@ -21,6 +19,8 @@ from sklearn.metrics import confusion_matrix
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
+load_dotenv()
+
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
 parser.add_argument(
     "--n_trees", type=int, default=20, help="Nombre d'arbres"
@@ -28,8 +28,15 @@ parser.add_argument(
 args = parser.parse_args()
 
 n_trees = args.n_trees
+jeton_api = os.environ.get("JETON_API", "")
+data_path = os.environ.get("DATA_PATH", "data.csv")
+MAX_DEPTH = None
+MAX_FEATURES = "sqrt"
 
-load_dotenv()
+if jeton_api.startswith("$"):
+    print("API token has been configured properly")
+else:
+    print("API token has not been configured")
 
 
 # FUNCTIONS --------------------------
@@ -167,16 +174,6 @@ def evaluate_model(pipe, X_test, y_test):
 
 
 
-jeton_api = os.environ.get("JETON_API", "")
-data_path = os.environ.get("DATA_PATH", "data.csv")
-MAX_DEPTH = None
-MAX_FEATURES = "sqrt"
-
-
-if jeton_api.startswith("$"):
-    print("API token has been configured properly")
-else:
-    print("API token has not been configured")
 
 
 # IMPORT ET EXPLORATION DONNEES --------------------------------
