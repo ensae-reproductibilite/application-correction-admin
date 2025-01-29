@@ -3,8 +3,11 @@ Prediction de la survie d'un individu sur le Titanic
 """
 
 import os
+from dotenv import load_dotenv
 import argparse
-import yaml
+
+import os
+import argparse
 import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
@@ -16,30 +19,20 @@ from sklearn.compose import ColumnTransformer
 from sklearn.metrics import confusion_matrix
 
 
+# ENVIRONMENT CONFIGURATION ---------------------------
+
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
-parser.add_argument("--n_trees", type=int, default=20, help="Nombre d'arbres")
+parser.add_argument(
+    "--n_trees", type=int, default=20, help="Nombre d'arbres"
+)
 args = parser.parse_args()
 
 n_trees = args.n_trees
 
+load_dotenv()
+
 
 # FUNCTIONS --------------------------
-
-
-def import_yaml_config(filename: str = "toto.yaml") -> dict:
-    """Import configuration from YAML file
-
-    Args:
-        filename (str, optional): _description_. Defaults to "toto.yaml".
-
-    Returns:
-        dict: _description_
-    """
-    dict_config = {}
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as stream:
-            dict_config = yaml.safe_load(stream)
-    return dict_config
 
 
 def split_and_count(df, column, separator):
@@ -173,12 +166,17 @@ def evaluate_model(pipe, X_test, y_test):
     return score, matrix
 
 
-config = import_yaml_config("config.yaml")
 
-jeton_api = config.get("jeton_api")
-data_path = config.get("data_path", "data.csv")
+jeton_api = os.environ.get("JETON_API", "")
+data_path = os.environ.get("DATA_PATH", "data.csv")
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
+
+
+if jeton_api.startswith("$"):
+    print("API token has been configured properly")
+else:
+    print("API token has not been configured")
 
 
 # IMPORT ET EXPLORATION DONNEES --------------------------------

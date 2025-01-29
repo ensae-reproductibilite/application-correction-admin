@@ -3,9 +3,10 @@ Prediction de la survie d'un individu sur le Titanic
 """
 
 import os
+from dotenv import load_dotenv
 import argparse
+
 import matplotlib.pyplot as plt
-import yaml
 import pandas as pd
 import seaborn as sns
 
@@ -17,6 +18,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics import confusion_matrix
 
+MAX_DEPTH = None
+MAX_FEATURES = "sqrt"
+
+
+# ENVIRONMENT CONFIGURATION ---------------------------
 
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
 parser.add_argument(
@@ -26,29 +32,14 @@ args = parser.parse_args()
 
 n_trees = args.n_trees
 
+# API TOKEN
+load_dotenv()
+JETON_API = os.environ.get("JETON_API", "")
 
-def import_yaml_config(filename: str = "toto.yaml") -> dict:
-    """Import configuration from YAML file
-
-    Args:
-        filename (str, optional): _description_. Defaults to "toto.yaml".
-
-    Returns:
-        dict: _description_
-    """
-    dict_config = {}
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as stream:
-            dict_config = yaml.safe_load(stream)
-    return dict_config
-
-
-config = import_yaml_config("config.yaml")
-
-jeton_api = config.get("jeton_api")
-data_path = config.get("data_path", "data.csv")
-MAX_DEPTH = None
-MAX_FEATURES = "sqrt"
+if JETON_API.startswith("$"):
+    print("API token has been configured properly")
+else:
+    print("API token has not been configured")
 
 
 # IMPORT ET EXPLORATION DONNEES --------------------------------
