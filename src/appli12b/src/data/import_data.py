@@ -1,19 +1,17 @@
-import os
-import yaml
+from loguru import logger
 
-
-def import_yaml_config(filename: str = "toto.yaml") -> dict:
-    """Import configuration from YAML file
+@logger.catch
+def split_and_count(df, column, separator):
+    """
+    Split a column in a DataFrame by a separator and count the number of resulting elements.
 
     Args:
-        filename (str, optional): _description_. Defaults to "toto.yaml".
+        df (pandas.DataFrame): The DataFrame containing the column to split.
+        column (str): The name of the column to split.
+        separator (str): The separator to use for splitting.
 
     Returns:
-        dict: _description_
-    """
-    dict_config = {}
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as stream:
-            dict_config = yaml.safe_load(stream)
-    return dict_config
+        pandas.Series: A Series containing the count of elements after splitting.
 
+    """
+    return df[column].str.split(separator).str.len()
