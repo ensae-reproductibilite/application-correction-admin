@@ -23,7 +23,7 @@ def show_welcome_page():
     return {
         "Message": "API de prédiction de survie sur le Titanic",
         "Model_name": 'Titanic ML',
-        "Model_version": "0.1",
+        "Model_version": "0.2",
     }
 
 
