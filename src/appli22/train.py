@@ -30,7 +30,7 @@ parser.add_argument(
     "--n_trees", type=int, default=20, help="Nombre d'arbres"
 )
 parser.add_argument(
-    "--experiment_name", type=str, default="test-parameter", help="MLFlow experiment name"
+    "--experiment_name", type=str, default="titanicml", help="MLFlow experiment name"
 )
 args = parser.parse_args()
 
