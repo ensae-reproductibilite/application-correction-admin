@@ -81,11 +81,12 @@ pipe_cross_validation = GridSearchCV(
     n_jobs=5,
     verbose=1,
 )
+
+pipe_cross_validation.fit(X_train, y_train)
 pipe = pipe_cross_validation.best_estimator_
 
 # ESTIMATION ET EVALUATION ----------------------
 
-pipe.fit(X_train, y_train)
 
 dump(pipe, 'model.joblib')
 
