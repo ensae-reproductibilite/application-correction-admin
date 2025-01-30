@@ -7,6 +7,6 @@ RUN apt-get -y update && \
 COPY requirements.txt .
 COPY api ./api
 RUN pip install -r requirements.txt
-COPY main.py .
+COPY train.py .
 COPY src ./src
 CMD ["bash", "-c", "./api/run.sh"]
