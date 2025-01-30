@@ -5,8 +5,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/ensae-reproductibilite/application-correction.git
-    targetRevision: dev
+    repoURL: https://github.com/linogaliana/application-gitops-cours-2024.git
+    targetRevision: main
     path: deployment
   destination:
     server: https://kubernetes.default.svc
