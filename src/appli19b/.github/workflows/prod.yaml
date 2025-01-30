@@ -1,6 +1,6 @@
 name: Construction image Docker
 
-on: 
+on:
   push:
     branches:
       - main
@@ -24,7 +24,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: linogaliana/application-correction
+          images: linogaliana/application
 
       -
         name: Login to Docker Hub

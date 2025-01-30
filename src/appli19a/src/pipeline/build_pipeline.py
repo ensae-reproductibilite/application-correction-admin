@@ -1,3 +1,5 @@
+from loguru import logger
+
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
@@ -7,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 import pandas as pd
 
-
+@logger.catch
 def split_train_test(data, test_size, train_path="train.csv", test_path="test.csv"):
     """
     Split the data into training and testing sets based on the specified test size.
@@ -30,13 +32,13 @@ def split_train_test(data, test_size, train_path="train.csv", test_path="test.cs
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
 
     if train_path:
-        pd.concat([X_train, y_train]).to_csv(train_path)
+        pd.concat([X_train, y_train]).to_parquet(train_path)
     if test_path:
-        pd.concat([X_test, y_test]).to_csv(test_path)
+        pd.concat([X_test, y_test]).to_parquet(test_path)
 
     return X_train, X_test, y_train, y_test
 
-
+@logger.catch
 def create_pipeline(
     n_trees,
     numeric_features=["Age", "Fare"],
