@@ -1,5 +1,8 @@
 pandas
 PyYAML
 scikit-learn
-fastapi
+python-dotenv
+loguru
+pyarrow
 uvicorn
+fastapi
