@@ -1,26 +1,10 @@
-# Probabilité de survie sur le Titanic [![Construction image Docker](https://github.com/ensae-reproductibilite/application-correction/actions/workflows/prod.yml/badge.svg)](https://github.com/ensae-reproductibilite/application-correction/actions/workflows/prod.yml)
+# Probabilité de survie sur le Titanic
 
+Ce projet met à disposition une API pour vous permettre de faire vos prédictions à partir de notre modèle Titanic disponible sur
+titanic.kub.sspcloud.fr. Le code utilisé pour le déploiement est disponible sur [un dépôt `GitOps`](https://github.com/ensae-reproductibilite/application-gitops).
 
-Découvrir de manière interactive le modèle sur [ce site](https://ensae-reproductibilite.github.io/application-correction/)
-ou par le biais de l'[API](https://titanic.kub.sspcloud.fr/docs).
+Pour tester en local ce code, après l'avoir cloné, installer les dépendances:
 
-Pour pouvoir utiliser ce projet, il 
-est recommandé de créer un fichier `config.yaml`
-ayant la structure suivante:
-
-```yaml
-jeton_api: ####
-train_path: ####
-test_path: ####
-test_fraction: ####
-```
-
-## Réutilisation
-
-Pour pouvoir tester ce projet, le code suivant
-suffit:
-
-```python
+```bash
 pip install -r requirements.txt
-python main.py
 ```

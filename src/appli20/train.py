@@ -2,82 +2,80 @@
 Prediction de la survie d'un individu sur le Titanic
 """
 
-# GESTION ENVIRONNEMENT --------------------------------
-
+import os
+from dotenv import load_dotenv
 import argparse
-from sklearn.metrics import confusion_matrix
+from loguru import logger
+
+import pathlib
 from joblib import dump
+import pandas as pd
 
-import src.data.import_data as imp
-import src.features.build_features as bf
-import src.models.train_evaluate as te
+from src.pipeline.build_pipeline import split_train_test, create_pipeline
+from src.models.train_evaluate import evaluate_model
 
 
-# PARAMETRES -------------------------------
+# ENVIRONMENT CONFIGURATION ---------------------------
 
-# Paramètres ligne de commande
+logger.add("recording.log", rotation="500 MB")
+load_dotenv()
+
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
 parser.add_argument(
     "--n_trees", type=int, default=20, help="Nombre d'arbres"
 )
 args = parser.parse_args()
 
-# Paramètres YAML
-config = imp.import_yaml_config("configuration/config.yaml")
-base_url = "https://minio.lab.sspcloud.fr/projet-formation/ensae-reproductibilite/data/raw"
-API_TOKEN = config.get("jeton_api")
-LOCATION_TRAIN = config.get("train_path", f"{base_url}/train.csv")
-LOCATION_TEST = config.get("test_path", f"{base_url}/test.csv")
-TEST_FRACTION = config.get("test_fraction", .1)
-N_TREES = args.n_trees
+URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.csv"
+
+n_trees = args.n_trees
+jeton_api = os.environ.get("JETON_API", "")
+data_path = os.environ.get("data_path", URL_RAW)
+data_train_path = os.environ.get("train_path", "data/derived/train.parquet")
+data_test_path = os.environ.get("test_path", "data/derived/test.parquet")
+MAX_DEPTH = None
+MAX_FEATURES = "sqrt"
+
+if jeton_api.startswith("$"):
+    logger.info("API token has been configured properly")
+else:
+    logger.warning("API token has not been configured")
 
 
-# FEATURE ENGINEERING --------------------------------
+# IMPORT ET STRUCTURATION DONNEES --------------------------------
 
-TrainingData = imp.import_data(LOCATION_TRAIN)
-TestData = imp.import_data(LOCATION_TEST)
+p = pathlib.Path("data/derived/")
+p.mkdir(parents=True, exist_ok=True)
 
-# Create a 'Title' variable
-TrainingData = bf.create_variable_title(TrainingData)
-TestData = bf.create_variable_title(TestData)
+TrainingData = pd.read_csv(data_path)
 
-
-# Making a new feature hasCabin which is 1 if cabin is available else 0
-TrainingData = bf.check_has_cabin(TrainingData)
-TestData = bf.check_has_cabin(TestData)
-
-TrainingData = bf.ticket_length(TrainingData)
-TestData = bf.ticket_length(TestData)
-
-train, test = te.split_train_test_titanic(
-    TrainingData,
-    fraction_test=TEST_FRACTION
+X_train, X_test, y_train, y_test = split_train_test(
+    TrainingData, test_size=0.1,
+    train_path=data_train_path,
+    test_path=data_test_path
 )
-X_train, y_train = train.drop("Survived", axis="columns"), train["Survived"]
-X_test, y_test = test.drop("Survived", axis="columns"), test["Survived"]
 
 
-# MODELISATION: RANDOM FOREST ----------------------------
+# PIPELINE ----------------------------
 
-pipe = te.build_pipeline(n_trees=N_TREES)
+
+# Create the pipeline
+pipe = create_pipeline(
+    n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
+)
+
+
+# ESTIMATION ET EVALUATION ----------------------
 
 pipe.fit(X_train, y_train)
 
+dump(pipe, 'model.joblib')
 
-# EVALUATE ----------------------------
 
-rdmf_score = pipe.score(X_test, y_test)
-print(
-    f"{round(rdmf_score * 100)} % de bonnes réponses sur les données de test pour validation \
-            (résultat qu'on attendrait si on soumettait notre prédiction \
-                sur le dataset de test.csv)"
-)
+# Evaluate the model
+score, matrix = evaluate_model(pipe, X_test, y_test)
 
-print("matrice de confusion")
-print(
-    confusion_matrix(
-        test["Survived"], pipe.predict(test.drop("Survived", axis="columns"))
-    )
-)
-
-dump(pipe, "model.joblib")
+logger.success(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
+logger.debug(20 * "-")
+logger.info("Matrice de confusion")
+logger.debug(matrix)
