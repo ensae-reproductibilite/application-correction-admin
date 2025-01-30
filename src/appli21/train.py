@@ -10,6 +10,7 @@ from loguru import logger
 import pathlib
 from joblib import dump
 import pandas as pd
+from sklearn.model_selection import GridSearchCV
 
 from src.pipeline.build_pipeline import split_train_test, create_pipeline
 from src.models.train_evaluate import evaluate_model
@@ -64,6 +65,23 @@ pipe = create_pipeline(
     n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
 )
 
+
+param_grid = {
+    "classifier__n_estimators": [10, 20, 50],
+    "classifier__max_leaf_nodes": [5, 10, 50],
+}
+
+
+pipe_cross_validation = GridSearchCV(
+    pipe,
+    param_grid=param_grid,
+    scoring=["accuracy", "precision", "recall", "f1"],
+    refit="f1",
+    cv=5,
+    n_jobs=5,
+    verbose=1,
+)
+pipe = pipe_cross_validation.best_estimator_
 
 # ESTIMATION ET EVALUATION ----------------------
 
