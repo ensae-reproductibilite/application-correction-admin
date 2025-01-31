@@ -1,25 +1,20 @@
-import os
-import yaml
+from loguru import logger
 import pandas as pd
 
-
-def import_yaml_config(filename: str = "toto.yaml") -> dict:
-    dict_config = {}
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as stream:
-            dict_config = yaml.safe_load(stream)
-    return dict_config
-
-
-def import_data(path: str) -> pd.DataFrame:
-    """Import Titanic datasets
-    Args:
-        path (str): File location
-    Returns:
-        pd.DataFrame: Titanic dataset
+@logger.catch
+def split_and_count(df, column, separator):
     """
+    Split a column in a DataFrame by a separator and count the number of resulting elements.
 
-    data = pd.read_csv(path)
-    data = data.drop(columns="PassengerId")
+    Args:
+        df (pandas.DataFrame): The DataFrame containing the column to split.
+        column (str): The name of the column to split.
+        separator (str): The separator to use for splitting.
 
-    return data
+    Returns:
+        pandas.Series: A Series containing the count of elements after splitting.
+
+    """
+    return df[column].str.split(separator).str.len()
+
+
