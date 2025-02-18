@@ -7,9 +7,10 @@ from dotenv import load_dotenv
 import argparse
 from loguru import logger
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from src.data.import_data import split_and_count
-from src.pipeline.build_pipeline import split_train_test, create_pipeline
+from src.pipeline.build_pipeline import create_pipeline
 from src.models.train_evaluate import evaluate_model
 
 # ENVIRONMENT CONFIGURATION ---------------------------
@@ -49,7 +50,15 @@ name_count = split_and_count(TrainingData, "Name", ",")
 
 # SPLIT TRAIN/TEST --------------------------------
 
-X_train, X_test, y_train, y_test = split_train_test(TrainingData, test_size=0.1)
+
+y = TrainingData["Survived"]
+X = TrainingData.drop("Survived", axis="columns")
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.1
+)
+pd.concat([X_train, y_train], axis = 1).to_csv(data_train_path)
+pd.concat([X_test, y_test], axis = 1).to_csv(data_test_path)
 
 
 # PIPELINE ----------------------------
