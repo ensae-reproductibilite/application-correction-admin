@@ -3,8 +3,10 @@ Prediction de la survie d'un individu sur le Titanic
 """
 
 import os
-from dotenv import load_dotenv
+import pathlib
 import argparse
+from dotenv import load_dotenv
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -47,6 +49,9 @@ name_count = split_and_count(TrainingData, "Name", ",")
 
 
 # SPLIT TRAIN/TEST --------------------------------
+
+p = pathlib.Path("data/derived/")
+p.mkdir(parents=True, exist_ok=True)
 
 y = TrainingData["Survived"]
 X = TrainingData.drop("Survived", axis="columns")
