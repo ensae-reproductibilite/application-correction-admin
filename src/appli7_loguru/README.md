@@ -8,3 +8,9 @@ ayant la structure suivante:
 jeton_api: ####
 data_path: ####
 ```
+
+Pour installer les dépendances
+
+```bash
+pip install -r requirements.txt
+```

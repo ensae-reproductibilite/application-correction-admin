@@ -3,29 +3,21 @@ Prediction de la survie d'un individu sur le Titanic
 """
 
 import os
-from dotenv import load_dotenv
+import pathlib
 import argparse
-import logging
+from dotenv import load_dotenv
+from loguru import logger
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from pipeline.build_pipeline import create_pipeline
-from models.train_evaluate import evaluate_model
 
-
-logging.basicConfig(
-    format="{asctime} - {levelname} - {message}",
-    style="{",
-    datefmt="%Y-%m-%d %H:%M",
-    level=logging.DEBUG,
-    handlers=[
-        logging.FileHandler("recording.log"),
-        logging.StreamHandler()
-    ]
-)
+from src.data.import_data import split_and_count
+from src.pipeline.build_pipeline import create_pipeline
+from src.models.train_evaluate import evaluate_model
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
+logger.add("recording.log", rotation="500 MB")
 load_dotenv()
 
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
@@ -43,14 +35,25 @@ MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
 
 if jeton_api.startswith("$"):
-    logging.info("API token has been configured properly")
+    logger.info("API token has been configured properly")
 else:
-    logging.warning("API token has not been configured")
+    logger.warning("API token has not been configured")
 
 
-# IMPORT ET STRUCTURATION DONNEES --------------------------------
+# IMPORT ET EXPLORATION DONNEES --------------------------------
 
-TrainingData = pd.read_csv("data.csv")
+TrainingData = pd.read_csv(data_path)
+
+
+# Usage example:
+ticket_count = split_and_count(TrainingData, "Ticket", "/")
+name_count = split_and_count(TrainingData, "Name", ",")
+
+
+# SPLIT TRAIN/TEST --------------------------------
+
+p = pathlib.Path("data/derived/")
+p.mkdir(parents=True, exist_ok=True)
 
 y = TrainingData["Survived"]
 X = TrainingData.drop("Survived", axis="columns")
@@ -58,12 +61,14 @@ X = TrainingData.drop("Survived", axis="columns")
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.1
 )
-pd.concat([X_train, y_train], axis = 1).to_csv("train.csv", index=False)
-pd.concat([X_test, y_test], axis = 1).to_csv("test.csv", index=False)
+pd.concat([X_train, y_train], axis = 1).to_csv(data_train_path)
+pd.concat([X_test, y_test], axis = 1).to_csv(data_test_path)
 
 
 # PIPELINE ----------------------------
 
+
+# Create the pipeline
 pipe = create_pipeline(
     n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
 )
@@ -72,9 +77,12 @@ pipe = create_pipeline(
 # ESTIMATION ET EVALUATION ----------------------
 
 pipe.fit(X_train, y_train)
+
+
+# Evaluate the model
 score, matrix = evaluate_model(pipe, X_test, y_test)
 
-logging.info(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
-logging.info(20 * "-")
-logging.info("matrice de confusion")
-logging.info(matrix)
+logger.success(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
+logger.debug(20 * "-")
+logger.info("Matrice de confusion")
+logger.debug(matrix)
