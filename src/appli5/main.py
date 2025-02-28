@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 import argparse
 
 import pandas as pd
-
-from import_data import split_and_count
-from build_pipeline import split_train_test, create_pipeline
+from sklearn.model_selection import train_test_split
+from build_pipeline import create_pipeline
 from train_evaluate import evaluate_model
 
 # ENVIRONMENT CONFIGURATION ---------------------------
@@ -25,6 +24,7 @@ args = parser.parse_args()
 n_trees = args.n_trees
 jeton_api = os.environ.get("JETON_API", "")
 data_path = os.environ.get("DATA_PATH", "data.csv")
+
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
 
@@ -34,25 +34,22 @@ else:
     print("API token has not been configured")
 
 
-# IMPORT ET EXPLORATION DONNEES --------------------------------
+# IMPORT ET STRUCTURATION DONNEES --------------------------------
 
 TrainingData = pd.read_csv("data.csv")
 
+y = TrainingData["Survived"]
+X = TrainingData.drop("Survived", axis="columns")
 
-# Usage example:
-ticket_count = split_and_count(TrainingData, "Ticket", "/")
-name_count = split_and_count(TrainingData, "Name", ",")
-
-
-# SPLIT TRAIN/TEST --------------------------------
-
-X_train, X_test, y_train, y_test = split_train_test(TrainingData, test_size=0.1)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.1
+)
+pd.concat([X_train, y_train], axis = 1).to_csv("train.csv", index=False)
+pd.concat([X_test, y_test], axis = 1).to_csv("test.csv", index=False)
 
 
 # PIPELINE ----------------------------
 
-
-# Create the pipeline
 pipe = create_pipeline(
     n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
 )
@@ -61,10 +58,8 @@ pipe = create_pipeline(
 # ESTIMATION ET EVALUATION ----------------------
 
 pipe.fit(X_train, y_train)
-
-
-# Evaluate the model
 score, matrix = evaluate_model(pipe, X_test, y_test)
+
 print(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
 print(20 * "-")
 print("matrice de confusion")
