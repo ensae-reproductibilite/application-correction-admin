@@ -63,7 +63,6 @@ pd.concat([X_test, y_test], axis = 1).to_parquet(data_test_path)
 # PIPELINE ----------------------------
 
 
-# Create the pipeline
 pipe = create_pipeline(
     n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
 )
@@ -72,9 +71,6 @@ pipe = create_pipeline(
 # ESTIMATION ET EVALUATION ----------------------
 
 pipe.fit(X_train, y_train)
-
-
-# Evaluate the model
 score, matrix = evaluate_model(pipe, X_test, y_test)
 
 logger.success(f"{score:.1%} de bonnes réponses sur les données de test pour validation")

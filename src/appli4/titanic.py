@@ -30,6 +30,7 @@ args = parser.parse_args()
 n_trees = args.n_trees
 jeton_api = os.environ.get("JETON_API", "")
 data_path = os.environ.get("DATA_PATH", "data.csv")
+
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
 
@@ -40,52 +41,6 @@ else:
 
 
 # FUNCTIONS --------------------------
-
-
-def split_and_count(df, column, separator):
-    """
-    Split a column in a DataFrame by a separator and count the number of resulting elements.
-
-    Args:
-        df (pandas.DataFrame): The DataFrame containing the column to split.
-        column (str): The name of the column to split.
-        separator (str): The separator to use for splitting.
-
-    Returns:
-        pandas.Series: A Series containing the count of elements after splitting.
-
-    """
-    return df[column].str.split(separator).str.len()
-
-
-def split_train_test(data, test_size, train_path="train.csv", test_path="test.csv"):
-    """
-    Split the data into training and testing sets based on the specified test size.
-    Optionally, save the split datasets to CSV files.
-
-    Args:
-        data (pandas.DataFrame): The input data to split.
-        test_size (float): The proportion of the dataset to include in the test split.
-        train_path (str, optional): The file path to save the training dataset.
-            Defaults to "train.csv".
-        test_path (str, optional): The file path to save the testing dataset.
-            Defaults to "test.csv".
-
-    Returns:
-        tuple: A tuple containing the training and testing datasets.
-    """
-    y = data["Survived"]
-    X = data.drop("Survived", axis="columns")
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
-
-    if train_path:
-        pd.concat([X_train, y_train], axis = 1).to_csv(train_path)
-    if test_path:
-        pd.concat([X_test, y_test], axis = 1).to_csv(test_path)
-
-    return X_train, X_test, y_train, y_test
-
 
 def create_pipeline(
     n_trees,
@@ -174,27 +129,22 @@ def evaluate_model(pipe, X_test, y_test):
 
 
 
-
-
-# IMPORT ET EXPLORATION DONNEES --------------------------------
+# IMPORT ET STRUCTURATION DONNEES --------------------------------
 
 TrainingData = pd.read_csv("data.csv")
 
+y = TrainingData["Survived"]
+X = TrainingData.drop("Survived", axis="columns")
 
-# Usage example:
-ticket_count = split_and_count(TrainingData, "Ticket", "/")
-name_count = split_and_count(TrainingData, "Name", ",")
-
-
-# SPLIT TRAIN/TEST --------------------------------
-
-X_train, X_test, y_train, y_test = split_train_test(TrainingData, test_size=0.1)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.1
+)
+pd.concat([X_train, y_train], axis = 1).to_csv("train.csv", index=False)
+pd.concat([X_test, y_test], axis = 1).to_csv("test.csv", index=False)
 
 
 # PIPELINE ----------------------------
 
-
-# Create the pipeline
 pipe = create_pipeline(
     n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
 )
@@ -203,10 +153,8 @@ pipe = create_pipeline(
 # ESTIMATION ET EVALUATION ----------------------
 
 pipe.fit(X_train, y_train)
-
-
-# Evaluate the model
 score, matrix = evaluate_model(pipe, X_test, y_test)
+
 print(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
 print(20 * "-")
 print("matrice de confusion")
