@@ -33,7 +33,7 @@ for folder in admin/src/*; do
     # Add, commit, tag
     git add -- . ':!admin'
     git commit -m "Update $version"
-    git tag -f $version  
+    git tag -f $version
 
     # Delete the temporary branch
     git checkout main

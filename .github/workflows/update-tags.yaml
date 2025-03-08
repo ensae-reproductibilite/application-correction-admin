@@ -22,3 +22,21 @@ jobs:
         cd application
         git clone https://github.com/ensae-reproductibilite/application-correction-admin.git admin
         ./admin/update-tags.sh
+
+  update-tags-gitops:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up GitHub Actions Bot
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions Bot"
+
+    - name: Run update script
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
+      run: |
+        git clone https://github-actions[bot]:${GH_PAT}@github.com/ensae-reproductibilite/application.git
+        cd application
+        git clone https://github.com/ensae-reproductibilite/application-deployment.git admin
+        ./admin/update-tags.sh admin/gitops/*
