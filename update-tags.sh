@@ -17,6 +17,8 @@ for folder in "$FOLDER_PATH"*; do
 
     echo "Updating $version..."
 
+    git tag -d $(git tag -l)
+
     # Checkout to a temporary branch for the update
     git checkout -b temp-update-branch
 
