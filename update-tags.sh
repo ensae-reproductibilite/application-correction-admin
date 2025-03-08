@@ -1,10 +1,13 @@
 #!/bin/bash
 
+# Set default folder value
+FOLDER_PATH=${1:-admin/src/}
+
 # Remove `.git/` from `admin` to prevent conflict
 rm -rf admin/.git
 
-# Iterate over each subfolder in the tmp directory
-for folder in admin/src/*; do
+# Iterate over each subfolder in the specified directory
+for folder in "$FOLDER_PATH"*; do
   if [ -d "$folder" ]; then
     # Extract the application version name (e.g., 'appli17') from the folder path
     version=${folder##*/}
@@ -17,8 +20,8 @@ for folder in admin/src/*; do
     # Clean branch
     find . -mindepth 1 -maxdepth 1 ! -name "admin" ! -name ".git" ! -name ".github" -exec rm -rf {} \;
 
-    # Copy new files from the corresponding tmp/version subfolder
-    cp -r $folder/* .
+    # Copy new files from the corresponding folder subdirectory
+    cp -r "$folder"/* .
 
     # Copy .gitignore if it exists
     if [ -f "$folder/.gitignore" ]; then
@@ -33,7 +36,7 @@ for folder in admin/src/*; do
     # Add, commit, tag
     git add -- . ':!admin'
     git commit -m "Update $version"
-    git tag -f $version
+    git tag -f "$version"
 
     # Delete the temporary branch
     git checkout main
