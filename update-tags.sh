@@ -12,6 +12,9 @@ for folder in "$FOLDER_PATH"*; do
     # Extract the application version name (e.g., 'appli17') from the folder path
     version=${folder##*/}
 
+    echo "Tagging from $folder"
+    ls $folder
+
     echo "Updating $version..."
 
     # Checkout to a temporary branch for the update
