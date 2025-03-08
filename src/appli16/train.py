@@ -6,9 +6,9 @@ import os
 from dotenv import load_dotenv
 import argparse
 from loguru import logger
+from joblib import dump
 
 import pathlib
-from joblib import dump
 import pandas as pd
 
 from src.pipeline.build_pipeline import split_train_test, create_pipeline
@@ -69,8 +69,8 @@ pipe = create_pipeline(
 
 pipe.fit(X_train, y_train)
 
-dump(pipe, 'model.joblib')
-
+with open("model.joblib", "wb") as f:
+    dump(pipe, f)
 
 # Evaluate the model
 score, matrix = evaluate_model(pipe, X_test, y_test)

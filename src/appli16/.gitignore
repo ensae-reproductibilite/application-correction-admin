@@ -1,6 +1,5 @@
 config.yaml
 __pycache__/
 data/**/*.csv
-data/**/*.parquet
 titanic/
 model.joblib
