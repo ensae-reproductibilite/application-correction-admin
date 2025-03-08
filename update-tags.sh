@@ -5,6 +5,7 @@ FOLDER_PATH=${1:-admin/src/}
 
 # Remove `.git/` from `admin` to prevent conflict
 rm -rf admin/.git
+git tag -d $(git tag -l)
 
 # Iterate over each subfolder in the specified directory
 for folder in "$FOLDER_PATH"*; do
@@ -16,8 +17,6 @@ for folder in "$FOLDER_PATH"*; do
     ls $folder
 
     echo "Updating $version..."
-
-    git tag -d $(git tag -l)
 
     # Checkout to a temporary branch for the update
     git checkout -b temp-update-branch
