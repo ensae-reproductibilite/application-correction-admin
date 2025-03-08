@@ -40,4 +40,4 @@ jobs:
         cd application
         git remote set-url origin https://github-actions[bot]:${GH_PAT}@github.com/ensae-reproductibilite/application-deployment.git
         git clone https://github.com/ensae-reproductibilite/application-correction-admin.git admin
-        ./admin/update-tags.sh admin/gitops/*
+        ./admin/update-tags.sh admin/gitops/
