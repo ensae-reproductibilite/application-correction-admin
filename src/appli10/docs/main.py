@@ -10,8 +10,10 @@ from loguru import logger
 import pathlib
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
+
 from titanicml import (
-    split_train_test, create_pipeline,
+    create_pipeline,
     evaluate_model
 )
 
@@ -49,11 +51,15 @@ p.mkdir(parents=True, exist_ok=True)
 
 TrainingData = pd.read_csv(data_path)
 
-X_train, X_test, y_train, y_test = split_train_test(
-    TrainingData, test_size=0.1,
-    train_path=data_train_path,
-    test_path=data_test_path
+y = TrainingData["Survived"]
+X = TrainingData.drop("Survived", axis="columns")
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.1
 )
+pd.concat([X_train, y_train], axis = 1).to_parquet(data_train_path)
+pd.concat([X_test, y_test], axis = 1).to_parquet(data_test_path)
+
 
 
 # PIPELINE ----------------------------

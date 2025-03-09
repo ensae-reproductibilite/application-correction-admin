@@ -1,1 +1,5 @@
 */__pycache__
+*recording.log
+__pycache__/*
+data/*
+*.parquet
