@@ -5,7 +5,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/linogaliana/application-gitops-cours-2024.git
+    repoURL: https://github.com/linogaliana/application-deployment.git
     targetRevision: main
     path: deployment
   destination:
