@@ -15,7 +15,6 @@ model = mlflow.sklearn.load_model(model_uri)
 
 # Define app -------------------------
 
-
 app = FastAPI(
     title="Prédiction de survie sur le Titanic",
     description=

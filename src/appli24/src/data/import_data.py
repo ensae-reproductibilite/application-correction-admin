@@ -1,5 +1,4 @@
 from loguru import logger
-import pandas as pd
 
 @logger.catch
 def split_and_count(df, column, separator):
@@ -16,4 +15,3 @@ def split_and_count(df, column, separator):
 
     """
     return df[column].str.split(separator).str.len()
-
