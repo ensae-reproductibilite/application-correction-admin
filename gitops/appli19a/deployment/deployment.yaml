@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: titanic
-        image: linogaliana/application:latest
+        image: <votre_compte_docker_hub>/application:latest
         ports:
         - containerPort: 5000

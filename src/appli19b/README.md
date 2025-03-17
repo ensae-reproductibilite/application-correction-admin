@@ -8,5 +8,5 @@ Pour tester en local ce code, après l'avoir cloné, installer les dépendances:
 ```bash
 pip install -r requirements.txt
 python train.py
-uvicorn api.main:app --reload --host "0.0.0.0" --port 5000
+uvicorn api.main:app --reload --host "0.0.0.0" --port 8000
 ```
