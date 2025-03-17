@@ -5,6 +5,6 @@ RUN apt-get -y update && \
 # Install project dependencies
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-COPY main.py .
+COPY train.py .
 COPY src ./src
 CMD ["python3", "train.py"]
