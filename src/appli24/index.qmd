@@ -50,7 +50,7 @@ d3.json(prediction)
 ```
 
 ```{ojs}
-prediction = `https://titanic.kub.sspcloud.fr/predict?pclass=${class_boat}&sex=${gender}&age=${age}&sib_sp=1&parch=1&fare=16.5&embarked=S&title=${title}&has_cabin=1&ticket_len=7`
+prediction = `https://titanic.lab.sspcloud.fr/predict?pclass=${class_boat}&sex=${gender}&age=${age}&sib_sp=1&parch=1&fare=16.5&embarked=S&title=${title}&has_cabin=1&ticket_len=7`
 ```
 
 ```{ojs}
@@ -64,6 +64,6 @@ default_class = gender == "male" ? 3 : 1
 
 ## Documentation de l'API
 
-Retrouver l'API sur [https://titanic.kub.sspcloud.fr/docs](https://titanic.kub.sspcloud.fr/docs) pour jouer avec
+Retrouver l'API sur [https://titanic.lab.sspcloud.fr/docs](https://titanic.lab.sspcloud.fr/docs) pour jouer avec
 d'autres exemples. 
 

@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: titanic
-        image: <votre_compte_docker_hub>/application:latest
+        image: avouacr/application:latest
         ports:
         - containerPort: 8000
