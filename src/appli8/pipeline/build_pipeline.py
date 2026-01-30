@@ -1,12 +1,9 @@
-from loguru import logger
-
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
-@logger.catch
 def create_pipeline(
     n_trees,
     numeric_features=["Age", "Fare"],
