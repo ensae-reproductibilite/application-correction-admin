@@ -9,8 +9,8 @@ import logging
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from pipeline.build_pipeline import create_pipeline
-from models.train_evaluate import evaluate_model
+from src.pipeline.build_pipeline import create_pipeline
+from src.models.train_evaluate import evaluate_model
 
 
 logging.basicConfig(
@@ -34,13 +34,13 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-n_trees = args.n_trees
-jeton_api = os.environ.get("JETON_API", "")
-data_path = os.environ.get("data_path", "data/raw/data.csv")
-data_train_path = os.environ.get("train_path", "data/derived/train.csv")
-data_test_path = os.environ.get("test_path", "data/derived/test.csv")
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
+
+n_trees = args.n_trees
+jeton_api = os.environ.get("JETON_API", "")
+data_path = os.environ.get("DATA_PATH", "data.csv")
+
 
 if jeton_api.startswith("$"):
     logging.info("API token has been configured properly")

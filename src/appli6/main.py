@@ -8,8 +8,8 @@ import argparse
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from pipeline.build_pipeline import create_pipeline
-from models.train_evaluate import evaluate_model
+from src.pipeline.build_pipeline import create_pipeline
+from src.models.train_evaluate import evaluate_model
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
@@ -21,12 +21,13 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+MAX_DEPTH = None
+MAX_FEATURES = "sqrt"
+
 n_trees = args.n_trees
 jeton_api = os.environ.get("JETON_API", "")
 data_path = os.environ.get("DATA_PATH", "data.csv")
 
-MAX_DEPTH = None
-MAX_FEATURES = "sqrt"
 
 if jeton_api.startswith("$"):
     print("API token has been configured properly")
