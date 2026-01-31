@@ -17,8 +17,8 @@ from src.models.train_evaluate import evaluate_model
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
-logger.add("recording.log", rotation="500 MB")
 load_dotenv()
+logger.add("recording.log", rotation="500 MB")
 
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
 parser.add_argument(
@@ -61,8 +61,6 @@ X = TrainingData.drop("Survived", axis="columns")
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.1
 )
-pd.concat([X_train, y_train], axis = 1).to_csv(data_train_path)
-pd.concat([X_test, y_test], axis = 1).to_csv(data_test_path)
 
 
 # PIPELINE ----------------------------

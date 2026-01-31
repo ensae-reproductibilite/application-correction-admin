@@ -21,6 +21,7 @@ from sklearn.metrics import confusion_matrix
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
 
+load_dotenv()
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
@@ -31,12 +32,9 @@ parser.add_argument(
 args = parser.parse_args()
 
 n_trees = args.n_trees
+jeton_api = os.environ.get("JETON_API", "")
 
-# API TOKEN
-load_dotenv()
-JETON_API = os.environ.get("JETON_API", "")
-
-if JETON_API.startswith("$"):
+if jeton_api.startswith("$"):
     print("API token has been configured properly")
 else:
     print("API token has not been configured")
@@ -45,10 +43,6 @@ else:
 # IMPORT ET EXPLORATION DONNEES --------------------------------
 
 TrainingData = pd.read_csv("data.csv")
-
-
-TrainingData["Ticket"].str.split("/").str.len()
-TrainingData["Name"].str.split(",").str.len()
 
 TrainingData.isnull().sum()
 
