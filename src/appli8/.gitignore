@@ -1,4 +1,2 @@
 config.yaml
 __pycache__/
-*.csv
-*.parquet

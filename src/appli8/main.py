@@ -3,17 +3,16 @@ Prediction de la survie d'un individu sur le Titanic
 """
 
 import os
-from pathlib import Path
 from dotenv import load_dotenv
 import argparse
 import logging
 
-import duckdb
 import pandas as pd
+import duckdb
 
 from sklearn.model_selection import train_test_split
-from pipeline.build_pipeline import create_pipeline
-from models.train_evaluate import evaluate_model
+from src.pipeline.build_pipeline import create_pipeline
+from src.models.train_evaluate import evaluate_model
 
 
 logging.basicConfig(
@@ -37,14 +36,15 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-n_trees = args.n_trees
-jeton_api = os.environ.get("JETON_API", "")
-
-URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.parquet" #<1>
-data_path = os.environ.get("data_path", URL_RAW)
-
 MAX_DEPTH = None
 MAX_FEATURES = "sqrt"
+URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.parquet"
+
+n_trees = args.n_trees
+jeton_api = os.environ.get("JETON_API", "")
+data_path = os.environ.get("DATA_PATH", URL_RAW)
+
+con = duckdb.connect(database=":memory:")
 
 if jeton_api.startswith("$"):
     logging.info("API token has been configured properly")
@@ -52,13 +52,11 @@ else:
     logging.warning("API token has not been configured")
 
 
-con = duckdb.connect(database=":memory:")
-
-
 # IMPORT ET STRUCTURATION DONNEES --------------------------------
 
+query_definition = f"SELECT * FROM read_parquet('{data_path}')"
 TrainingData = con.sql(
-    f"SELECT * FROM read_parquet('{data_path}')"
+    query_definition
 ).to_df()
 
 y = TrainingData["Survived"]
