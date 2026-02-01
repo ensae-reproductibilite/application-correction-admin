@@ -1,20 +1,20 @@
-[tool.poetry]
+[project]
 name = "titanicml"
-version = "0.0.1"
-description = "Awesome Machine Learning project"
-authors = ["Daffy Duck <daffy.duck@fauxmail.fr>", "Mickey Mouse"]
-license = "MIT"
+version = "0.1.0"
+description = "Add your description here"
 readme = "README.md"
-exclude = [
-    "data/"
+authors = [
+    { name = "lgaliana", email = "lino.galiana@insee.fr" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "duckdb>=1.4.4",
+    "pandas>=3.0.0",
+    "python-dotenv>=1.2.1",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.8.0",
 ]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.pytest.ini_options]
-log_cli = true
-log_cli_level = "WARNING"
-log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
-log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+requires = ["uv_build>=0.9.14,<0.10.0"]
+build-backend = "uv_build"

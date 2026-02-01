@@ -1,3 +1,11 @@
-config.yaml
+# Python-generated files
 __pycache__/
-data/**/*.csv
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+*.log
