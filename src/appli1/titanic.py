@@ -8,37 +8,30 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 import time
 import os
-import seaborn as sns
+import duckdb
 
-TrainingData = pd.read_csv('data.csv')
-
-TrainingData.head()
+titanic = pd.read_csv('data.csv')
 
 
-TrainingData['Ticket'].str.split("/").str.len()
+con = duckdb.connect(database=":memory:")
 
-TrainingData['Name'].str.split(",").str.len()
+# Check la structure de Name "Nom, Prénom"
+bad = con.sql("""
+    SELECT COUNT(*) AS n_bad
+    FROM titanic
+    WHERE list_count(string_split(Name, ',')) <> 2
+""").fetchone()[0]
+
+if bad == 0:
+    print("Test 'Name' OK se découpe toujours en 2 parties avec ','")
+else:
+    print(f"Problème dans la colonne Name: {bad} ne se décomposent pas en 2 parties.")
+
 
 n_trees = 20
 max_depth =None
 max_features='sqrt'
 
-TrainingData.isnull().sum()
-
-
-## Un peu d'exploration et de feature engineering
-
-### Statut socioéconomique
-
-fig, axes=plt.subplots(1,2, figsize=(12, 6)) #layout matplotlib 1 ligne 2 colonnes taile 16*8
-fig1_pclass=sns.countplot(data=TrainingData, x ="Pclass",    ax=axes[0]).set_title("fréquence des Pclass")
-fig2_pclass=sns.barplot(data=TrainingData, x= "Pclass",y= "Survived", ax=axes[1]).set_title("survie des Pclass")
-
-
-### Age
-
-sns.histplot(data= TrainingData, x='Age',bins=15, kde=False    )    .set_title("Distribution de l'âge")
-plt.show()
 
 ## Encoder les données imputées ou transformées.
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
@@ -77,23 +70,61 @@ pipe = Pipeline(
 
 
 # splitting samples
-y = TrainingData["Survived"]
-X = TrainingData.drop("Survived", axis = 'columns')
+y = titanic["Survived"]
+X = titanic.drop("Survived", axis = 'columns')
 
 # On _split_ notre _dataset_ d'apprentisage pour faire de la validation croisée une partie pour apprendre une partie pour regarder le score.
 # Prenons arbitrairement 10% du dataset en test et 90% pour l'apprentissage.
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
-pd.concat([X_train, y_train], axis = 1).to_csv("train.csv")
-pd.concat([X_test, y_test], axis = 1).to_csv("test.csv")
+
+# check que pas de problème de data leakage
+if set(X_train["Embarked"].dropna().unique()) - set(X_test["Embarked"].dropna().unique()):
+    message = "Problème de data leakage pour la variable Embarked"
+else:
+    message = "Pas de problème de data leakage pour la variable Embarked"
+
+print(message)
+
+if set(X_train["Sex"].dropna().unique()) - set(X_test["Sex"].dropna().unique()):
+    message = "Problème de data leakage pour la variable Sex"
+else:
+    message = "Pas de problème de data leakage pour la variable Embarked"
+
+print(message)
+
+
 
 jetonapi = "$trotskitueleski1917"
+
+# Vérifie les valeurs manquantes
+# TODO: généraliser à toutes les variables
+n_missing = con.sql("""
+    SELECT COUNT(*) AS n_missing
+    FROM titanic
+    WHERE Survived IS NULL
+""").fetchone()[0]
+
+message_ok = "Pas de valeur manquante pour la variable Survived"
+message_warn = f"{n_missing} valeurs manquantes pour la variable Survived"
+message = message_ok if n_missing == 0 else message_warn
+print(message)
+
+n_missing = con.sql("""
+    SELECT COUNT(*) AS n_missing
+    FROM titanic
+    WHERE Age IS NULL
+""").fetchone()[0]
+
+message_ok = "Pas de valeur manquante pour la variable Age"
+message_warn = f"{n_missing} valeurs manquantes pour la variable Age"
+message = message_ok if n_missing == 0 else message_warn
+print(message)
 
 
 # Random Forest
 
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
-import pathlib
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 
@@ -111,3 +142,5 @@ from sklearn.metrics import confusion_matrix
 print(20*"-")
 print("matrice de confusion")
 print(confusion_matrix(y_test, pipe.predict(X_test)))
+
+
