@@ -3,157 +3,171 @@ Prediction de la survie d'un individu sur le Titanic
 """
 
 import os
-from dotenv import load_dotenv
 import argparse
+from dotenv import load_dotenv
 
-import pandas as pd
-
-from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
+
+import pandas as pd
+import duckdb
+
+load_dotenv()
+con = duckdb.connect(database=":memory:")
+
+N_TREES = 20
+MAX_DEPTH = None
+MAX_FEATURES = "sqrt"
+NUMERIC_FEATURES = ["Age", "Fare"]
+CATEGORICAL_FEATURES = ["Embarked", "Sex"]
+
+jeton_api = os.environ["JETON_API"]
 
 
 # ENVIRONMENT CONFIGURATION ---------------------------
 
-load_dotenv()
-
 parser = argparse.ArgumentParser(description="Paramètres du random forest")
-parser.add_argument(
-    "--n_trees", type=int, default=20, help="Nombre d'arbres"
-)
+parser.add_argument("--n_trees", type=int, default=20, help="Nombre d'arbres")
 args = parser.parse_args()
 
 n_trees = args.n_trees
-jeton_api = os.environ.get("JETON_API", "")
-data_path = os.environ.get("DATA_PATH", "data.csv")
 
-MAX_DEPTH = None
-MAX_FEATURES = "sqrt"
-
-if jeton_api.startswith("$"):
-    print("API token has been configured properly")
-else:
-    print("API token has not been configured")
+print(f"Valeur de l'argument n_trees: {n_trees}")
 
 
-# FUNCTIONS --------------------------
-
-def create_pipeline(
-    n_trees,
-    numeric_features=["Age", "Fare"],
-    categorical_features=["Embarked", "Sex"],
-    max_depth=None,
-    max_features="sqrt",
+def check_name_formatting(
+    connection: duckdb.DuckDBPyConnection, dataset_name: str = "titanic"
 ):
-    """
-    Create a pipeline for preprocessing and model definition.
 
-    Args:
-        n_trees (int): The number of trees in the random forest.
-        numeric_features (list, optional): The numeric features to be included in the pipeline.
-            Defaults to ["Age", "Fare"].
-        categorical_features (list, optional): The categorical features to be included
-            in the pipeline.
-            Defaults to ["Embarked", "Sex"].
-        max_depth (int, optional): The maximum depth of the random forest. Defaults to None.
-        max_features (str, optional): The maximum number of features to consider
-            when looking for the best split.
-            Defaults to "sqrt".
-
-    Returns:
-        sklearn.pipeline.Pipeline: The pipeline object.
-    """
-    # Variables numériques
-    numeric_transformer = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", MinMaxScaler()),
-        ]
+    query = (
+        "SELECT COUNT(*) AS n_bad "
+        f"FROM {dataset_name} "
+        "WHERE list_count(string_split(Name, ',')) <> 2"
     )
 
-    # Variables catégorielles
-    categorical_transformer = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("onehot", OneHotEncoder()),
-        ]
-    )
+    bad = connection.sql(query).fetchone()[0]
 
-    # Preprocessing
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("Preprocessing numerical", numeric_transformer, numeric_features),
-            (
-                "Preprocessing categorical",
-                categorical_transformer,
-                categorical_features,
-            ),
-        ]
-    )
-
-    # Pipeline
-    pipe = Pipeline(
-        [
-            ("preprocessor", preprocessor),
-            (
-                "classifier",
-                RandomForestClassifier(
-                    n_estimators=n_trees, max_depth=max_depth, max_features=max_features
-                ),
-            ),
-        ]
-    )
-
-    return pipe
+    if bad == 0:
+        print("Test 'Name' OK se découpe toujours en 2 parties avec ','")
+    else:
+        print(
+            f"Problème dans la colonne Name: {bad} ne se décomposent pas en 2 parties."
+        )
 
 
-def evaluate_model(pipe, X_test, y_test):
-    """
-    Evaluate the model by calculating the score and confusion matrix.
+def check_missing_values(
+    connection: duckdb.DuckDBPyConnection,
+    variable: str = "Survived",
+    dataset_name: str = "titanic",
+):
 
-    Args:
-        pipe (sklearn.pipeline.Pipeline): The trained pipeline object.
-        X_test (pandas.DataFrame): The test data.
-        y_test (pandas.Series): The true labels for the test data.
+    query = f"SELECT COUNT(*) AS n_missing FROM {dataset_name} WHERE {variable} IS NULL"
 
-    Returns:
-        tuple: A tuple containing the score and confusion matrix.
-    """
-    score = pipe.score(X_test, y_test)
-    matrix = confusion_matrix(y_test, pipe.predict(X_test))
-    return score, matrix
+    n_missing = connection.sql(query).fetchone()[0]
 
+    message_ok = f"Pas de valeur manquante pour la variable {variable}"
+    message_warn = f"{n_missing} valeurs manquantes pour la variable {variable}"
+    message = message_ok if n_missing == 0 else message_warn
+    print(message)
 
 
-# IMPORT ET STRUCTURATION DONNEES --------------------------------
+def check_data_leakage(
+    train_dataset: pd.DataFrame,
+    test_dataset: pd.DataFrame,
+    variable: str,
+):
 
-TrainingData = pd.read_csv("data.csv")
+    if set(train_dataset[variable].dropna().unique()) - set(
+        test_dataset[variable].dropna().unique()
+    ):
+        message = f"Problème de data leakage pour la variable {variable}"
+    else:
+        message = f"Pas de problème de data leakage pour la variable {variable}"
 
-y = TrainingData["Survived"]
-X = TrainingData.drop("Survived", axis="columns")
+    print(message)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.1
+
+# QUALITY DIAGNOSTICS  ---------------------------------------
+
+titanic = pd.read_csv("data.csv")
+
+column_names = con.sql("SELECT column_name FROM (DESCRIBE titanic)").to_df()[
+    "column_name"
+]  # DuckDB ici, sinon titanic.columns serait OK
+
+# Test formatting Name variable
+check_name_formatting(con)
+
+# Check missing values
+for variables in column_names:
+    check_missing_values(con, variables)
+
+
+# FEATURE ENGINEERING    -----------------------------------------
+
+y = titanic["Survived"]
+X = titanic.drop("Survived", axis="columns")
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+
+for string_var in CATEGORICAL_FEATURES:
+    check_data_leakage(X_train, X_test, string_var)
+
+
+# MODEL DEFINITION -----------------------------------------
+
+numeric_transformer = Pipeline(
+    steps=[
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", MinMaxScaler()),
+    ]
+)
+
+categorical_transformer = Pipeline(
+    steps=[
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        ("onehot", OneHotEncoder()),
+    ]
 )
 
 
-# PIPELINE ----------------------------
-
-pipe = create_pipeline(
-    n_trees, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("Preprocessing numerical", numeric_transformer, NUMERIC_FEATURES),
+        (
+            "Preprocessing categorical",
+            categorical_transformer,
+            CATEGORICAL_FEATURES,
+        ),
+    ]
 )
 
+pipe = Pipeline(
+    [
+        ("preprocessor", preprocessor),
+        (
+            "classifier",
+            RandomForestClassifier(
+                n_estimators=N_TREES, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
+            ),
+        ),
+    ]
+)
 
-# ESTIMATION ET EVALUATION ----------------------
+# TRAINING AND EVALUATION --------------------------------------------
 
 pipe.fit(X_train, y_train)
-score, matrix = evaluate_model(pipe, X_test, y_test)
+rdmf_score = pipe.score(X_test, y_test)
+rdmf_score_tr = pipe.score(X_train, y_train)
 
-print(f"{score:.1%} de bonnes réponses sur les données de test pour validation")
+print(f"{rdmf_score:.1%} de bonnes réponses sur les données de test pour validation")
+
 print(20 * "-")
 print("matrice de confusion")
-print(matrix)
+print(confusion_matrix(y_test, pipe.predict(X_test)))
