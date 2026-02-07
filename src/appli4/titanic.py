@@ -42,12 +42,13 @@ print(f"Valeur de l'argument n_trees: {n_trees}")
 
 
 def check_name_formatting(
-    connection: duckdb.DuckDBPyConnection, dataset_name: str = "titanic"
+    connection: duckdb.DuckDBPyConnection,
+    df: pd.DataFrame
 ):
 
     query = (
         "SELECT COUNT(*) AS n_bad "
-        f"FROM {dataset_name} "
+        "FROM df "
         "WHERE list_count(string_split(Name, ',')) <> 2"
     )
 
@@ -63,11 +64,11 @@ def check_name_formatting(
 
 def check_missing_values(
     connection: duckdb.DuckDBPyConnection,
+    df: pd.DataFrame,
     variable: str = "Survived",
-    dataset_name: str = "titanic",
 ):
 
-    query = f"SELECT COUNT(*) AS n_missing FROM {dataset_name} WHERE {variable} IS NULL"
+    query = f"SELECT COUNT(*) AS n_missing FROM df WHERE {variable} IS NULL"
 
     n_missing = connection.sql(query).fetchone()[0]
 
@@ -101,12 +102,10 @@ column_names = con.sql("SELECT column_name FROM (DESCRIBE titanic)").to_df()[
     "column_name"
 ]  # DuckDB ici, sinon titanic.columns serait OK
 
-# Test formatting Name variable
-check_name_formatting(con)
+check_name_formatting(connection=con, df=titanic)
 
-# Check missing values
-for variables in column_names:
-    check_missing_values(con, variables)
+for var in column_names:
+    check_missing_values(connection=con, df=titanic, variable=var)
 
 
 # FEATURE ENGINEERING    -----------------------------------------
