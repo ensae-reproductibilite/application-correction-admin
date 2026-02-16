@@ -26,9 +26,8 @@ jobs:
 
       - name: Test code quality
         run: |
-          uv add pylint
           uv sync
-          uv run pylint src --fail-under=5
+          uv run --with pylint pylint src --fail-under=5
 
       - name: Test that code runs smoothly
         env:

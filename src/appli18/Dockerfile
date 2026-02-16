@@ -2,14 +2,17 @@ FROM ubuntu:22.04
 
 # Install Python
 RUN apt-get -y update && \
-    apt-get install -y python3-pip
+    apt-get install -y python3-pip curl
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin/:$PATH"
 
 # Install project dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY pyproject.toml .
+RUN uv sync
 
-COPY src ./src
-COPY train.py .
 COPY app ./app
-
+COPY train.py .
+COPY src ./src
 CMD ["bash", "-c", "./app/run.sh"]
