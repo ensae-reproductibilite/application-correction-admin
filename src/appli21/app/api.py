@@ -1,17 +1,17 @@
 """A simple API to expose our trained RandomForest model for Tutanic survival."""
-from fastapi import FastAPI
-from joblib import load
 
+from fastapi import FastAPI
+import skops.io as sio
 import pandas as pd
 
-model = load('model.joblib')
+unknown_types = sio.get_untrusted_types(file="model.skops")
+model = sio.load("model.skops", trusted=unknown_types)
 
 app = FastAPI(
-    title="Prédiction de survie sur le Titanic",
-    description=
-    "Application de prédiction de survie sur le Titanic 🚢 <br>Une version par API pour faciliter la réutilisation du modèle 🚀" +\
-        "<br><br><img src=\"https://media.vogue.fr/photos/5faac06d39c5194ff9752ec9/1:1/w_2404,h_2404,c_limit/076_CHL_126884.jpg\" width=\"200\">"
-    )
+    title="Démonstration du modèle de prédiction de survie sur le Titanic",
+    description="<b>Application de prédiction de survie sur le Titanic</b> 🚢 <br>Une version par API pour faciliter la réutilisation du modèle 🚀"
+    + '<br><br><img src="https://media.vogue.fr/photos/5faac06d39c5194ff9752ec9/1:1/w_2404,h_2404,c_limit/076_CHL_126884.jpg" width="200">',
+)
 
 
 @app.get("/", tags=["Welcome"])
@@ -22,20 +22,16 @@ def show_welcome_page():
 
     return {
         "Message": "API de prédiction de survie sur le Titanic",
-        "Model_name": 'Titanic ML',
-        "Model_version": "0.2",
+        "Model_name": "Titanic ML",
+        "Model_version": "0.0.2",
     }
 
 
 @app.get("/predict", tags=["Predict"])
 async def predict(
-    sex: str = "female",
-    age: float = 29.0,
-    fare: float = 16.5,
-    embarked: str = "S"
+    sex: str = "female", age: float = 29.0, fare: float = 16.5, embarked: str = "S"
 ) -> str:
-    """
-    """
+    """ """
 
     df = pd.DataFrame(
         {
@@ -46,6 +42,8 @@ async def predict(
         }
     )
 
-    prediction = "Survived 🎉" if int(model.predict(df)) == 1 else "Dead ⚰️"
+    prediction = int(model.predict(df)[0])
+
+    prediction = "Survived 🎉" if prediction == 1 else "Dead ⚰️"
 
     return prediction
