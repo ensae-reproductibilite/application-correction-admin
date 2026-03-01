@@ -5,12 +5,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/linogaliana/application-deployment.git
+    repoURL: https://github.com/compte_github/application-deployment.git
     targetRevision: main
     path: deployment
   destination:
     server: https://kubernetes.default.svc
-    namespace: user-lgaliana
+    namespace: user-compte_sspcloud
   syncPolicy:
     automated:
       selfHeal: true

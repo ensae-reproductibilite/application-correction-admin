@@ -41,7 +41,7 @@ logging.basicConfig(
 
 NUMERIC_FEATURES = ["Age", "Fare"]
 CATEGORICAL_FEATURES = ["Embarked", "Sex"]
-URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.parquet"
+URL_RAW = "https://minio.lab.sspcloud.fr/compte_sspcloud/ensae-reproductibilite/data/raw/data.parquet"
 
 jeton_api = os.environ["JETON_API"]
 

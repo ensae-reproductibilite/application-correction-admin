@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "lgaliana", email = "lino.galiana@insee.fr" }
+    { name = "compte_sspcloud", email = "lino.galiana@insee.fr" }
 ]
 requires-python = ">=3.13"
 dependencies = [

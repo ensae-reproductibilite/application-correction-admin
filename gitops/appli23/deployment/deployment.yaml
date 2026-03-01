@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: titanic
-          image: linogaliana/application:v0.0.3
+          image: compte_github/application:v0.0.3
           ports:
             - containerPort: 8000
           env:
@@ -26,7 +26,7 @@ spec:
                   name: api-jeton
                   key: JETON_API
             - name: MLFLOW_TRACKING_URI
-              value: "https://user-lgaliana-mlflow.user.lab.sspcloud.fr"
+              value: "https://user-compte_sspcloud-mlflow.user.lab.sspcloud.fr"
             - name: MLFLOW_TRACKING_USERNAME
               valueFrom:
                 secretKeyRef:

@@ -38,7 +38,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.csv"
+URL_RAW = "https://minio.lab.sspcloud.fr/compte_sspcloud/ensae-reproductibilite/data/raw/data.csv"
 
 n_trees = args.n_trees
 jeton_api = os.environ.get("JETON_API", "")

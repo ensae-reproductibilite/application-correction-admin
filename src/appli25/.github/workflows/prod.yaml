@@ -24,7 +24,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: linogaliana/application
+          images: compte_github/application
 
       -
         name: Login to Docker Hub
