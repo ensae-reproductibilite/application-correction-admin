@@ -2,36 +2,39 @@
 Fonctions de validation de données
 """
 
-import pandas as pd
 import duckdb
+import pandas as pd
 
 
-def check_name_formatting(
+def check_code_commune_formatting(
     connection: duckdb.DuckDBPyConnection,
-    df: pd.DataFrame
+    df: pd.DataFrame,
 ):
+    """Vérifie que code_commune a 5 caractères et commence par le département"""
 
     query = (
         "SELECT COUNT(*) AS n_bad "
         "FROM df "
-        "WHERE list_count(string_split(Name, ',')) <> 2"
+        "WHERE length(code_commune) <> 5 "
+        "OR NOT starts_with(code_commune, code_departement)"
     )
 
     bad = connection.sql(query).fetchone()[0]
 
     if bad == 0:
-        print("Test 'Name' OK se découpe toujours en 2 parties avec ','")
-    else:
         print(
-            f"Problème dans la colonne Name: {bad} ne se décomposent pas en 2 parties."
+            "Test 'code_commune' OK: toujours 5 caractères commençant par le département"
         )
+    else:
+        print(f"Problème dans la colonne code_commune: {bad} codes mal formés.")
 
 
 def check_missing_values(
     connection: duckdb.DuckDBPyConnection,
     df: pd.DataFrame,
-    variable: str = "Survived",
+    variable: str = "valeur_fonciere",
 ):
+    """Recense les valeurs manquantes d'une variable"""
 
     query = f"SELECT COUNT(*) AS n_missing FROM df WHERE {variable} IS NULL"
 
@@ -48,6 +51,7 @@ def check_data_leakage(
     test_dataset: pd.DataFrame,
     variable: str,
 ):
+    """Vérifie que les modalités de l'apprentissage sont présentes dans le test"""
 
     if set(train_dataset[variable].dropna().unique()) - set(
         test_dataset[variable].dropna().unique()

@@ -1,5 +1,12 @@
-PyYAML
-python-dotenv
-pandas
 duckdb
+geopandas
+lightgbm
+matplotlib
+numpy
+pandas
+pyarrow
+python-dotenv
+requests
 scikit-learn
+seaborn
+skore
