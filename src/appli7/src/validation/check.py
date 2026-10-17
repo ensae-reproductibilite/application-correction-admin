@@ -1,5 +1,5 @@
 """
-Fonctions de validation de données
+Data validation functions
 """
 
 import logging
@@ -14,7 +14,7 @@ def check_code_commune_formatting(
     connection: duckdb.DuckDBPyConnection,
     df: pd.DataFrame,
 ):
-    """Vérifie que code_commune a 5 caractères et commence par le département"""
+    """Check that code_commune has 5 characters and starts with the department"""
 
     query = (
         "SELECT COUNT(*) AS n_bad "
@@ -41,7 +41,7 @@ def check_missing_values(
     df: pd.DataFrame,
     variable: str = "valeur_fonciere",
 ):
-    """Recense les valeurs manquantes d'une variable"""
+    """Count the missing values of a variable"""
 
     query = f"SELECT COUNT(*) AS n_missing FROM df WHERE {variable} IS NULL"
 
@@ -55,16 +55,22 @@ def check_missing_values(
         logger.warning(message_warn)
 
 
-def check_data_leakage(
+def check_unseen_categories(
     train_dataset: pd.DataFrame,
     test_dataset: pd.DataFrame,
     variable: str,
 ):
-    """Vérifie que les modalités de l'apprentissage sont présentes dans le test"""
+    """Check that every test category also appears in the training set
 
-    if set(train_dataset[variable].dropna().unique()) - set(
-        test_dataset[variable].dropna().unique()
+    Unseen categories are encoded as unknown (-1): the model has learned nothing
+    about them, so their predictions are unreliable.
+    """
+
+    if set(test_dataset[variable].dropna().unique()) - set(
+        train_dataset[variable].dropna().unique()
     ):
-        logger.error(f"Problème de data leakage pour la variable {variable}")
+        logger.warning(f"Modalités de {variable} absentes de l'apprentissage")
     else:
-        logger.info(f"Pas de problème de data leakage pour la variable {variable}")
+        logger.info(
+            f"Toutes les modalités de {variable} du test sont connues du modèle"
+        )

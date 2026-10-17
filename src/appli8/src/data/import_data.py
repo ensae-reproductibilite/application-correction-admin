@@ -1,5 +1,5 @@
 """
-Fonctions de récupération des données
+Data retrieval functions
 """
 
 import pandas as pd
@@ -15,11 +15,10 @@ def get_melodi_indicator(
     time_period: int = 2023,
     geo_level: tuple[str, ...] = ("COM", "ARM"),
 ) -> pd.DataFrame:
-    """Récupère un indicateur communal depuis l'API Melodi de l'Insee
+    """Fetch a municipality-level indicator from the Insee Melodi API
 
-    Dans DVF, Paris est codé par arrondissement (75101 à 75120) : avec le seul
-    niveau COM (Paris = 75056), toutes les ventes parisiennes perdraient leurs
-    variables communales. On demande donc aussi, par défaut, le niveau ARM.
+    DVF codes Paris by arrondissement (75101 to 75120), not as one municipality
+    (75056): without the ARM level, Paris sales would get no municipality data.
     """
 
     url = f"https://api.insee.fr/melodi/data/{dataset}"

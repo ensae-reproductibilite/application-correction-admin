@@ -1,6 +1,6 @@
 """
-Prédiction du prix au m² des logements vendus en petite couronne parisienne
-à partir des données DVF enrichies par des données socio-économiques (Filosofi)
+Predict the price per m² of homes sold in Paris and its inner suburbs
+from DVF transactions enriched with Filosofi socio-economic data
 """
 
 import argparse
@@ -28,8 +28,8 @@ from skore import EstimatorReport
 from src.data.import_data import download_sources, get_melodi_indicator
 from src.validation.check import (
     check_code_commune_formatting,
-    check_data_leakage,
     check_missing_values,
+    check_unseen_categories,
 )
 
 load_dotenv()
@@ -43,8 +43,8 @@ logging.basicConfig(
     handlers=[logging.FileHandler("recording.log"), logging.StreamHandler()],
 )
 
-# Le niveau DEBUG n'est activé que pour nos messages : au niveau global,
-# les librairies utilisées (matplotlib notamment) inonderaient le log
+# DEBUG only for our own messages: globally, libraries such as matplotlib
+# would flood the log
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -85,7 +85,7 @@ SOURCES = {
 }
 
 
-# ENVIRONMENT CONFIGURATION ---------------------------
+# ENVIRONMENT CONFIGURATION ---------------------------------------
 
 parser = argparse.ArgumentParser(description="Paramètres du modèle LightGBM")
 parser.add_argument("--n_trees", type=int, default=1500, help="Nombre d'arbres")
@@ -96,7 +96,7 @@ n_trees = args.n_trees
 logger.debug(f"Valeur de l'argument n_trees: {n_trees}")
 
 
-# IMPORT DES DONNEES  ---------------------------------------
+# DATA IMPORT ---------------------------------------
 
 logger.debug(f"\n{80 * '-'}\nLecture des données\n{80 * '-'}")
 
@@ -116,16 +116,17 @@ for nom_fichier, url_source in SOURCES.items():
 dvf = gpd.read_parquet(DATA_LOCATION / "dvf.parquet")
 
 
-# QUALITY DIAGNOSTICS  ---------------------------------------
+# QUALITY DIAGNOSTICS ---------------------------------------
 
 logger.debug(f"\n{80 * '-'}\nValidation des données\n{80 * '-'}")
 
-# DuckDB ne sait pas lire la colonne geometry, on regarde les autres colonnes
+# DuckDB cannot read the geometry column as Pandas formatted it
 dvf_attributs = dvf.drop(columns="geometry")
 
+# dvf_attributs.columns would work too: DuckDB anticipates its wider use later
 column_names = con.sql("SELECT column_name FROM (DESCRIBE dvf_attributs)").to_df()[
     "column_name"
-]  # DuckDB ici, sinon dvf_attributs.columns serait OK
+]
 
 check_code_commune_formatting(connection=con, df=dvf_attributs)
 
@@ -133,7 +134,7 @@ for var in column_names:
     check_missing_values(connection=con, df=dvf_attributs, variable=var)
 
 
-# RESTRICTION DU CHAMP ---------------------------------------
+# SCOPE RESTRICTION ---------------------------------------
 
 logger.info("Restriction aux départements de la petite couronne")
 
@@ -141,9 +142,9 @@ dvf = dvf.loc[dvf["code_departement"].isin(DEPARTEMENTS_PARIS)]
 dvf = dvf.loc[dvf["valeur_fonciere"] < 1e6]
 
 
-# DONNEES SUPPLEMENTAIRES -----------------------
+# ADDITIONAL DATA ---------------------------------------
 
-# 1/ Données carroyées Filosofi (carreaux de 200m) ===============
+# Filosofi gridded income and demographic data (200m cells)
 
 filo_cols = [
     "idcar_200m",
@@ -181,7 +182,7 @@ dvf = dvf.to_crs(filo.crs)
 dvf = dvf.sjoin(filo, how="left", predicate="within")
 
 
-# 2/ Données au niveau communal (API Melodi) ====================
+# Filosofi municipality-level data (Melodi API)
 
 niveau_vie = get_melodi_indicator(
     code="MED_SL", value_name="NIVVIE_MEDIAN", jeton_api=jeton_api
@@ -189,8 +190,6 @@ niveau_vie = get_melodi_indicator(
 taux_pauvrete = get_melodi_indicator(
     code="PR_MD60", value_name="TAUX_PAUVRETE", jeton_api=jeton_api
 )
-
-# Fusion avec les transactions
 
 dvf = dvf.merge(niveau_vie, left_on="code_commune", right_on="CODGEO", how="left").drop(
     columns="CODGEO"
@@ -213,14 +212,14 @@ grid = sns.scatterplot(data=dvf, x="surface_reelle_bati", y="valeur_fonciere")
 grid.set(xscale="log", yscale="log")
 
 
-# FEATURE ENGINEERING    -----------------------------------------
+# FEATURE ENGINEERING ---------------------------------------
 
 logger.debug(f"\n{80 * '-'}\nFeature engineering\n{80 * '-'}")
 
 dvf["tx_pauvrete"] = dvf["nbre_menages_pauvres"] / dvf["nbre_menages"]
 dvf["nv_vie_moyen"] = dvf["somme_nv_vie"] / dvf["nbre_menages"]
-# Dans Filosofi, chaque ménage occupe un logement : on peut donc rapporter
-# les comptes de logements au nombre de ménages du carreau.
+# In Filosofi each household occupies one dwelling, so the number of households
+# is the denominator for dwelling counts.
 dvf["part_proprietaires"] = dvf["nbre_menages_prop"] / dvf["nbre_menages"]
 dvf["part_logements_sociaux"] = dvf["nbre_logements_sociaux"] / dvf["nbre_menages"]
 dvf["part_logements_avant_1945"] = (
@@ -229,14 +228,13 @@ dvf["part_logements_avant_1945"] = (
 dvf["surface_moyenne_logements"] = dvf["surface_totale_logements"] / dvf["nbre_menages"]
 dvf["prix_m2"] = dvf["valeur_fonciere"] / dvf["surface_reelle_bati"]
 
-# On écarte le centile inférieur et supérieur de prix au m² : ventes multi-lots,
-# démembrements ou erreurs de saisie DVF. Sans ce filtre le modèle apprend en
-# bonne partie du bruit.
+# Extreme prices per m² are mostly multi-lot sales, split ownership or data
+# entry errors: keeping them would make the model learn noise.
 borne_basse, borne_haute = dvf["prix_m2"].quantile([0.01, 0.99])
 dvf = dvf.loc[dvf["prix_m2"].between(borne_basse, borne_haute)]
 
-# Les bornes ci-dessus sont tirées par Paris : on applique donc le même
-# filtre au marché local, commune par commune.
+# Global bounds are driven by Paris and let outliers through in the suburbs,
+# hence a second filter within each municipality.
 prix_m2_par_commune = dvf.groupby("code_commune")["prix_m2"]
 dvf = dvf.loc[
     dvf["prix_m2"].between(
@@ -247,15 +245,13 @@ dvf = dvf.loc[
 
 dvf["log_surface"] = np.log(dvf["surface_reelle_bati"])
 
-# Ce qui est vendu en plus du logement lui-même : le prix DVF inclut les
-# dépendances (cave, parking = lots supplémentaires) et le terrain des maisons.
-# Le rapport surface Carrez / surface bâtie signale les ventes où la surface
-# déclarée ne correspond pas au bien (pas de Carrez hors copropriété -> NaN).
+# DVF prices include land and outbuildings (extra lots), so we account for them.
+# ratio_carrez flags sales whose declared area does not match the property.
 dvf["log_surface_terrain"] = np.log1p(dvf["surface_terrain"].fillna(0))
 dvf["ratio_carrez"] = dvf["lot1_surface_carrez"] / dvf["surface_reelle_bati"]
 
-# Distance à la tour Eiffel (proxy de centralité, très corrélé au prix en IdF).
-# On calcule la distance en Lambert-93 (mètres) puis on passe en log(1 + km).
+# Distance to the Eiffel Tower proxies centrality, a strong driver of prices.
+# Lambert-93 (EPSG:2154) gives distances in meters.
 tour_eiffel = gpd.GeoSeries.from_xy([2.2945], [48.8584], crs="EPSG:4326").to_crs(
     "EPSG:2154"
 )
@@ -264,12 +260,12 @@ distance_eiffel_km = (
 )
 dvf["log_distance_eiffel"] = np.log1p(distance_eiffel_km)
 
-# Les valeurs manquantes des variables explicatives sont imputées dans le
-# pipeline : on n'écarte que les lignes sans cible.
+# Missing features are imputed in the pipeline: only rows without a target
+# are dropped.
 dvf_start_data = dvf.dropna(subset=["prix_m2"])
 
 
-# PRIX AU M2 PAR COMMUNE ---------------------------------------
+# PRICE PER M² BY MUNICIPALITY ---------------------------------------
 
 prix_m2_commune = (
     dvf.groupby(["code_commune", "nom_commune"])["prix_m2"].mean().sort_values()
@@ -279,12 +275,11 @@ logger.info(f"Communes au prix au m2 le plus bas :\n{prix_m2_commune.head(5)}")
 logger.info(f"Communes au prix au m2 le plus élevé :\n{prix_m2_commune.tail(5)}")
 
 
-# MODEL -----------------------------------------
+# MODEL ---------------------------------------
 
 
 def as_category(df):
-    """Convertit les colonnes en dtype 'category' pour que LightGBM les
-    reconnaisse automatiquement comme variables catégorielles."""
+    """LightGBM only handles 'category' columns natively as categorical."""
     return df.astype("category")
 
 
@@ -331,14 +326,14 @@ pipe_lgbm = Pipeline(
     ]
 )
 
-# Le prix au m² est très asymétrique : on apprend sur log(1 + prix) et on
-# repasse en euros à la prédiction.
+# Price per m² is highly skewed: learning on its log keeps the loss from being
+# dominated by the most expensive sales.
 pipe = TransformedTargetRegressor(
     regressor=pipe_lgbm, func=np.log1p, inverse_func=np.expm1
 )
 
 
-# TRAIN/TEST SPLIT -----------------------------------
+# TRAIN/TEST SPLIT ---------------------------------------
 
 features = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 X = dvf_start_data[features]
@@ -351,13 +346,13 @@ pd.concat([X_train, y_train], axis=1).to_csv(DERIVED_DATA_LOCATION / "train.csv"
 pd.concat([X_test, y_test], axis=1).to_csv(DERIVED_DATA_LOCATION / "test.csv")
 
 
-# PIPELINE VALIDATION -----------------------------------
+# SPLIT VALIDATION ---------------------------------------
 
 for string_var in CATEGORICAL_FEATURES:
-    check_data_leakage(X_train, X_test, string_var)
+    check_unseen_categories(X_train, X_test, string_var)
 
 
-# TRAINING AND EVALUATION --------------------------------------------
+# TRAINING AND EVALUATION ---------------------------------------
 
 logger.debug(f"\n{80 * '-'}\nEntraînement du modèle\n{80 * '-'}")
 
@@ -368,7 +363,6 @@ rmse_test = root_mean_squared_error(y_test, pipe.predict(X_test))
 logger.info(f"RMSE sur l'apprentissage : {rmse_train:,.0f} €/m²")
 logger.info(f"RMSE sur le test : {rmse_test:,.0f} €/m²")
 
-# RMSE par commune (top et bottom 5)
 residuals = X_test[["code_commune"]].copy()
 residuals["y_test"] = y_test
 residuals["pred"] = pipe.predict(X_test)
@@ -390,11 +384,12 @@ logger.info(f"Communes avec la RMSE la plus faible :\n{rmse_commune.head(5)}")
 logger.info(f"Communes avec la RMSE la plus élevée :\n{rmse_commune.tail(5)}")
 
 
-# MODEL EVALUATION WITH SKORE ---------------------
+# EVALUATION WITH SKORE ---------------------------------------
 
 logger.debug(f"\n{80 * '-'}\nÉvaluation du modèle avec skore\n{80 * '-'}")
 
-# skore réentraîne une copie du pipeline sur le même découpage
+# Unfitted copy: skore fits the model itself and can therefore report
+# the training time.
 report = EstimatorReport(
     clone(pipe),
     X_train=X_train,
@@ -405,16 +400,13 @@ report = EstimatorReport(
 
 logger.debug(report)
 
-# Tableau de métriques (RMSE, MAE, R², temps de calcul) sur train et test
 metrics = report.metrics.summarize(data_source="both").frame()
 logger.info(f"Métriques de performance:\n{metrics}")
 
-# Graphique des erreurs de prédiction (prédit vs réel)
 report.metrics.prediction_error().plot(kind="actual_vs_predicted")
 plt.savefig("prediction_error.png", dpi=150, bbox_inches="tight")
 plt.close()
 
-# Importance des variables par permutation
 importance = report.inspection.permutation_importance(data_source="test").frame()
 logger.info(f"Importance des variables:\n{importance}")
 

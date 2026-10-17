@@ -3,3 +3,6 @@
 __pycache__/*
 data/*
 *.parquet
+.vscode/
+
+*prediction_error.png
