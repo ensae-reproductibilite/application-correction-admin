@@ -2,8 +2,12 @@
 Data validation functions
 """
 
+import logging
+
 import duckdb
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 def check_code_commune_formatting(
@@ -22,11 +26,11 @@ def check_code_commune_formatting(
     bad = connection.sql(query).fetchone()[0]
 
     if bad == 0:
-        print(
-            "Test 'code_commune' OK: toujours 5 caractères commençant par le département"
+        logger.info(
+            "Test OK: code_commune always has 5 characters starting with the department"
         )
     else:
-        print(f"Problème dans la colonne code_commune: {bad} codes mal formés.")
+        logger.warning(f"Issue in code_commune: {bad} malformed codes")
 
 
 def check_missing_values(
@@ -40,10 +44,12 @@ def check_missing_values(
 
     n_missing = connection.sql(query).fetchone()[0]
 
-    message_ok = f"Pas de valeur manquante pour la variable {variable}"
-    message_warn = f"{n_missing} valeurs manquantes pour la variable {variable}"
-    message = message_ok if n_missing == 0 else message_warn
-    print(message)
+    message_ok = f"No missing values for variable {variable}"
+    message_warn = f"{n_missing} missing values for variable {variable}"
+    if n_missing == 0:
+        logger.info(message_ok)
+    else:
+        logger.warning(message_warn)
 
 
 def check_unseen_categories(
@@ -60,8 +66,6 @@ def check_unseen_categories(
     if set(test_dataset[variable].dropna().unique()) - set(
         train_dataset[variable].dropna().unique()
     ):
-        message = f"Modalités de {variable} absentes de l'apprentissage"
+        logger.warning(f"Categories of {variable} missing from the training set")
     else:
-        message = f"Toutes les modalités de {variable} du test sont connues du modèle"
-
-    print(message)
+        logger.info(f"All test categories of {variable} are known to the model")

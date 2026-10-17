@@ -43,7 +43,7 @@ S'il manque un package pour exécuter une application, n'installe rien : signale
 
 ## Qualité de code
 
-À partir de l'application qui introduit un critère de forme (linter `ruff`, formatage…), ce critère s'applique à cette application et à toutes les suivantes. Après chaque modification, lance-le sur chaque application concernée et corrige les erreurs.
+À partir de l'application 2 qui introduit un critère de forme (linter `ruff`, formatage...), ce critère s'applique à cette application et à toutes les suivantes. Après chaque modification, lance-le sur chaque application concernée et corrige les erreurs.
 
 Ne l'applique pas aux applications antérieures : leur code imparfait fait partie de l'exercice.
 

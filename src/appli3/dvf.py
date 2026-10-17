@@ -114,9 +114,9 @@ bad = con.sql("""
 """).fetchone()[0]
 
 if bad == 0:
-    print("Test 'code_commune' OK: toujours 5 caractères commençant par le département")
+    print("Test OK: code_commune always has 5 characters starting with the department")
 else:
-    print(f"Problème dans la colonne code_commune: {bad} codes mal formés.")
+    print(f"Issue in code_commune: {bad} malformed codes")
 
 # TODO: generalize to all variables
 n_missing = con.sql("""
@@ -125,8 +125,8 @@ n_missing = con.sql("""
     WHERE valeur_fonciere IS NULL
 """).fetchone()[0]
 
-message_ok = "Pas de valeur manquante pour la variable valeur_fonciere"
-message_warn = f"{n_missing} valeurs manquantes pour la variable valeur_fonciere"
+message_ok = "No missing values for variable valeur_fonciere"
+message_warn = f"{n_missing} missing values for variable valeur_fonciere"
 message = message_ok if n_missing == 0 else message_warn
 print(message)
 
@@ -136,8 +136,8 @@ n_missing = con.sql("""
     WHERE surface_reelle_bati IS NULL
 """).fetchone()[0]
 
-message_ok = "Pas de valeur manquante pour la variable surface_reelle_bati"
-message_warn = f"{n_missing} valeurs manquantes pour la variable surface_reelle_bati"
+message_ok = "No missing values for variable surface_reelle_bati"
+message_warn = f"{n_missing} missing values for variable surface_reelle_bati"
 message = message_ok if n_missing == 0 else message_warn
 print(message)
 
@@ -417,18 +417,18 @@ pd.concat([X_test, y_test], axis=1).to_csv("test.csv")
 if set(X_test["code_commune"].dropna().unique()) - set(
     X_train["code_commune"].dropna().unique()
 ):
-    message = "Modalités de code_commune absentes de l'apprentissage"
+    message = "Categories of code_commune missing from the training set"
 else:
-    message = "Toutes les modalités de code_commune du test sont connues du modèle"
+    message = "All test categories of code_commune are known to the model"
 
 print(message)
 
 if set(X_test["type_local"].dropna().unique()) - set(
     X_train["type_local"].dropna().unique()
 ):
-    message = "Modalités de type_local absentes de l'apprentissage"
+    message = "Categories of type_local missing from the training set"
 else:
-    message = "Toutes les modalités de type_local du test sont connues du modèle"
+    message = "All test categories of type_local are known to the model"
 
 print(message)
 
