@@ -9,8 +9,7 @@ wheels/
 # Virtual environments
 .venv
 
-config.yaml
-__pycache__/
 .env
 *.log
-data/
+/data/
+*.parquet
