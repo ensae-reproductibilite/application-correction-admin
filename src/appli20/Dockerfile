@@ -1,8 +1,8 @@
-FROM ubuntu:22.04
+FROM python:3.13-slim
 
-# Install Python
+# System dependency needed by lightgbm
 RUN apt-get -y update && \
-    apt-get install -y python3-pip
+    apt-get install -y libgomp1
 
 # Install project dependencies
 COPY requirements.txt .

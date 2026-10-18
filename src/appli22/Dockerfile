@@ -1,12 +1,8 @@
-FROM ubuntu:22.04
+FROM astral/uv:python3.13-trixie-slim
 
-# Install Python
+# System dependency needed by lightgbm
 RUN apt-get -y update && \
-    apt-get install -y python3-pip curl
-
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin/:$PATH"
+    apt-get install -y libgomp1
 
 # Install project dependencies
 COPY pyproject.toml .
