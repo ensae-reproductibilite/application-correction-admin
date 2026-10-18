@@ -8,6 +8,6 @@ RUN apt-get -y update && \
 COPY pyproject.toml .
 RUN uv sync
 
-COPY train.py .
+COPY main.py .
 COPY src ./src
-CMD ["uv", "run", "train.py"]
+CMD ["uv", "run", "main.py"]

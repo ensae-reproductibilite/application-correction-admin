@@ -28,6 +28,15 @@ Lancer ensuite la chaîne de traitement:
 uv run main.py
 ```
 
+## Contribuer
+
+Avant chaque _commit_, un _hook_ `pre-commit` vérifie le code avec `ruff`
+(_linter_ et _formatter_). Pour l'activer dans votre copie du dépôt:
+
+```bash
+uvx pre-commit install
+```
+
 ## Sources utilisées
 
 * Données DVF récupérées et simplifiées de https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres

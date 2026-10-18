@@ -1,10 +1,24 @@
 """A simple API to expose our trained RandomForest model for Tutanic survival."""
+
+import logging
 from fastapi import FastAPI
+import pandas as pd
 import mlflow
 
-import pandas as pd
+
+logging.basicConfig(
+    format="{asctime} - {levelname} - {message}",
+    style="{",
+    datefmt="%Y-%m-%d %H:%M",
+    level=logging.DEBUG,
+    handlers=[logging.FileHandler("api.log"), logging.StreamHandler()],
+)
 
 # Preload model -------------------
+
+logging.info(
+    "Getting model from MLFlow"
+)
 
 model_name = "production"
 model_version = "latest"
@@ -14,6 +28,7 @@ model_uri = f"models:/{model_name}/{model_version}"
 model = mlflow.sklearn.load_model(model_uri)
 
 # Define app -------------------------
+
 
 app = FastAPI(
     title="Prédiction de survie sur le Titanic",
@@ -55,6 +70,12 @@ async def predict(
         }
     )
 
-    prediction = "Survived 🎉" if int(model.predict(df)) == 1 else "Dead ⚰️"
+    prediction = int(model.predict(df)[0])
+
+    logging.debug(f"Predicting {prediction} for {df.to_dict()}")
+
+    prediction = "Survived 🎉" if prediction == 1 else "Dead ⚰️"
 
     return prediction
+
+

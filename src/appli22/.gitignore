@@ -11,4 +11,3 @@ model.skops
 *.html
 *_files
 _site/
-mlruns/*
