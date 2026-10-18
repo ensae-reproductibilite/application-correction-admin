@@ -17,3 +17,11 @@ dependencies = [
     "seaborn>=0.13.2",
     "skore>=0.28.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+]
+
+[tool.ruff]
+extend-exclude = ["*.ipynb"]

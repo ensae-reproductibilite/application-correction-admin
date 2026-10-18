@@ -18,5 +18,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pylint>=4.0.5",
-    "ruff>=0.15.1",
+    "ruff>=0.17.1",
 ]
+
+[tool.ruff]
+extend-exclude = ["*.ipynb"]
