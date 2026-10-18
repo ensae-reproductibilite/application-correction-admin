@@ -13,3 +13,11 @@ dependencies = [
     "skops>=0.13.0",
     "uvicorn>=0.40.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+]
+
+[tool.ruff]
+extend-exclude = ["*.ipynb"]

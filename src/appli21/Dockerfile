@@ -1,18 +1,15 @@
-FROM ubuntu:22.04
+FROM python:3.13-slim
 
-# Install Python
+# System dependency needed by lightgbm
 RUN apt-get -y update && \
-    apt-get install -y python3-pip curl
-
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin/:$PATH"
+    apt-get install -y libgomp1
 
 # Install project dependencies
-COPY pyproject.toml .
-RUN uv sync
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-COPY app ./app
-COPY train.py .
 COPY src ./src
+COPY train.py .
+COPY app ./app
+
 CMD ["bash", "-c", "./app/run.sh"]

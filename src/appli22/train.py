@@ -17,10 +17,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
 import skops.io as sio
-import mlflow
 
 import duckdb
-import pandas as pd
 
 from src.validation.check import (
     check_name_formatting,
@@ -53,9 +51,6 @@ parser = argparse.ArgumentParser(
     description="Paramètres du random forest + grid search"
 )
 parser.add_argument(
-    "--experiment_name", type=str, default="titanicml", help="MLFlow experiment name"
-)
-parser.add_argument(
     "--n_trees",
     type=int,
     default=20,
@@ -71,17 +66,6 @@ cv_folds = args.cv
 
 logging.debug(f"Valeur de l'argument n_trees: {n_trees_default}")
 logging.debug(f"Valeur de l'argument cv: {cv_folds}")
-
-
-# LOGGING IN MLFLOW -----------------
-
-mlflow_server = os.getenv("MLFLOW_TRACKING_URI")
-
-logging.debug(f"Saving experiment in {mlflow_server}")
-
-mlflow.set_tracking_uri(mlflow_server)
-mlflow.set_experiment(args.experiment_name)
-
 
 # QUALITY DIAGNOSTICS  ---------------------------------------
 
@@ -116,7 +100,6 @@ X = titanic.drop("Survived", axis="columns")
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.1, random_state=42, stratify=y
 )
-
 
 for string_var in CATEGORICAL_FEATURES:
     check_data_leakage(X_train, X_test, string_var)
@@ -163,81 +146,42 @@ param_grid = {
     "classifier__min_samples_split": [2, 5]
 }
 
+cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
 
-train_data = pd.concat([X_train, y_train], axis=1)
-
-with mlflow.start_run():
-
-    logging.debug(f"\n{80 * '-'}\nLogging input in MLFlow\n{80 * '-'}")
-
-    mlflow.log_input(
-        mlflow.data.from_pandas(titanic),
-        context="raw",
-    )
-
-    mlflow.log_input(
-        mlflow.data.from_pandas(train_data),
-        context="raw",
-    )
-
-    mlflow.log_param("n_trees", n_trees_default)
-
-    cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
-
-    search = GridSearchCV(
-        estimator=pipe,
-        param_grid=param_grid,
-        scoring="accuracy",
-        cv=cv,
-        verbose=1,
-        refit=True,
-    )
+search = GridSearchCV(
+    estimator=pipe,
+    param_grid=param_grid,
+    scoring="accuracy",
+    cv=cv,
+    verbose=1,
+    refit=True,
+)
 
 # TRAINING AND EVALUATION --------------------------------------------
 
-    logging.debug(f"\n{80 * '-'}\nStarting grid search fitting phase\n{80 * '-'}")
+logging.debug(f"\n{80 * '-'}\nStarting grid search fitting phase\n{80 * '-'}")
 
-    search.fit(X_train, y_train)
+search.fit(X_train, y_train)
 
-    logging.info(f"Best CV score: {search.best_score_:.3f}")
-    logging.info(f"Best params: {search.best_params_}")
+logging.info(f"Best CV score: {search.best_score_:.3f}")
+logging.info(f"Best params: {search.best_params_}")
 
-    best_model = search.best_estimator_
+best_model = search.best_estimator_
 
-    best_params = search.best_params_
+# Sauvegarde du meilleur pipeline complet
+sio.dump(best_model, "model.skops")
 
-    for param, value in best_params.items():
-        mlflow.log_param(param, value)
+test_score = best_model.score(X_test, y_test)
+train_score = best_model.score(X_train, y_train)
 
+logging.info(
+    f"{test_score:.1%} de bonnes réponses sur les données de test (best model)"
+)
+logging.info(
+    f"{train_score:.1%} de bonnes réponses sur les données de train (best model)"
+)
 
-    # Sauvegarde du meilleur pipeline complet
-    sio.dump(best_model, "model.skops")
+logging.info("Matrice de confusion (test):")
+logging.info(confusion_matrix(y_test, best_model.predict(X_test)))
 
-    test_score = best_model.score(X_test, y_test)
-    train_score = best_model.score(X_train, y_train)
-
-    logging.info(
-        f"{test_score:.1%} de bonnes réponses sur les données de test (best model)"
-    )
-    logging.info(
-        f"{train_score:.1%} de bonnes réponses sur les données de train (best model)"
-    )
-
-    # Log metrics
-    mlflow.log_metric("accuracy", test_score)
-
-    matrix = confusion_matrix(y_test, best_model.predict(X_test))
-    
-    logging.info("Matrice de confusion (test):")
-    logging.info(matrix)
-
-    logging.debug(f"\n{80 * '-'}\nFILE ENDED SUCCESSFULLY!\n{80 * '-'}")
-
-    # Log confusion matrix as an artifact
-    matrix_path = "confusion_matrix.txt"
-    with open(matrix_path, "w") as f:
-        f.write(str(matrix))
-    mlflow.log_artifact(matrix_path)
-
-    # Log model
-    mlflow.sklearn.log_model(pipe, "model")
+logging.debug(f"\n{80 * '-'}\nFILE ENDED SUCCESSFULLY!\n{80 * '-'}")

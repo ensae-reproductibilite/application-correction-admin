@@ -1,30 +1,34 @@
 """
-Prediction de la survie d'un individu sur le Titanic
+Predict the price per m² of homes sold in Paris and its inner suburbs
+from DVF transactions enriched with Filosofi socio-economic data
 """
 
-import os
 import argparse
 import logging
-from dotenv import load_dotenv
+import os
+from pathlib import Path
 
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
-
-import pandas as pd
 import duckdb
+import geopandas as gpd
+import pandas as pd
+import seaborn as sns
+from dotenv import load_dotenv
+from sklearn.metrics import root_mean_squared_error
+from sklearn.model_selection import train_test_split
 
-from src.validation.check import (
-    check_name_formatting,
+from src.data.build_features import build_features
+from src.data.check import (
+    check_code_commune_formatting,
     check_missing_values,
-    check_data_leakage
+    check_unseen_categories,
 )
-
+from src.data.import_data import (
+    add_filosofi_carreaux,
+    add_filosofi_communes,
+    download_missing_sources,
+)
+from src.models.evaluation import evaluate_with_skore, rmse_by_commune
+from src.models.model import create_pipeline
 
 load_dotenv()
 con = duckdb.connect(database=":memory:")
@@ -33,118 +37,185 @@ logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
     style="{",
     datefmt="%Y-%m-%d %H:%M",
-    level=logging.DEBUG,
-    handlers=[
-        logging.FileHandler("recording.log"),
-        logging.StreamHandler()
-    ]
+    level=logging.INFO,
+    handlers=[logging.FileHandler("recording.log"), logging.StreamHandler()],
 )
 
+# DEBUG only for our own messages: globally, libraries such as matplotlib
+# would flood the log
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-# PARAMETERS ---------------------------------------
-
-
-N_TREES = 20
-MAX_DEPTH = None
-MAX_FEATURES = "sqrt"
-NUMERIC_FEATURES = ["Age", "Fare"]
-CATEGORICAL_FEATURES = ["Embarked", "Sex"]
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+NUMERIC_FEATURES = [
+    "log_surface",
+    "log_distance_eiffel",
+    "nombre_pieces_principales",
+    "nombre_lots",
+    "log_surface_terrain",
+    "ratio_carrez",
+    "nbre_menages",
+    "tx_pauvrete",
+    "nv_vie_moyen",
+    "part_proprietaires",
+    "part_logements_sociaux",
+    "part_logements_avant_1945",
+    "surface_moyenne_logements",
+    "NIVVIE_MEDIAN",
+    "TAUX_PAUVRETE",
+]
+CATEGORICAL_FEATURES = ["code_commune", "type_local"]
+DEPARTEMENTS_PARIS = ["75", "92", "93", "94"]
 
 jeton_api = os.environ["JETON_API"]
 
+DATA_LOCATION = Path("data/raw")
+DERIVED_DATA_LOCATION = Path("data/derived")
+SOURCES = {
+    "dvf.parquet": (
+        "https://minio.lab.sspcloud.fr/"
+        "projet-formation/nouvelles-sources/data/geoparquet/dvf.parquet"
+    ),
+    "filosofi_carreaux_200m_2021.parquet": (
+        "https://www.data.gouv.fr/api/1/datasets/r/55432374-a91d-43d0-923d-4514dc3eb951"
+    ),
+}
 
-# ENVIRONMENT CONFIGURATION ---------------------------
 
-parser = argparse.ArgumentParser(description="Paramètres du random forest")
-parser.add_argument("--n_trees", type=int, default=20, help="Nombre d'arbres")
+# ENVIRONMENT CONFIGURATION ---------------------------------------
+
+parser = argparse.ArgumentParser(description="Paramètres du modèle LightGBM")
+parser.add_argument("--n_trees", type=int, default=1500, help="Nombre d'arbres")
 args = parser.parse_args()
 
 n_trees = args.n_trees
 
-logging.debug(f"Valeur de l'argument n_trees: {n_trees}")
+logger.debug(f"Valeur de l'argument n_trees: {n_trees}")
 
 
-# QUALITY DIAGNOSTICS  ---------------------------------------
+# DATA IMPORT ---------------------------------------
 
-logging.debug(f"\n{80*'-'}\nStarting data validation step\n{80*'-'}")
+logger.debug(f"\n{80 * '-'}\nLecture des données\n{80 * '-'}")
 
-titanic = pd.read_csv("data/raw/titanic.csv")
+download_missing_sources(SOURCES, DATA_LOCATION)
+dvf = gpd.read_parquet(DATA_LOCATION / "dvf.parquet")
 
-column_names = con.sql("SELECT column_name FROM (DESCRIBE titanic)").to_df()[
+
+# QUALITY DIAGNOSTICS ---------------------------------------
+
+logger.debug(f"\n{80 * '-'}\nValidation des données\n{80 * '-'}")
+
+# DuckDB cannot read the geometry column as Pandas formatted it
+dvf_attributs = dvf.drop(columns="geometry")
+
+# dvf_attributs.columns would work too: DuckDB anticipates its wider use later
+column_names = con.sql("SELECT column_name FROM (DESCRIBE dvf_attributs)").to_df()[
     "column_name"
-]  # DuckDB ici, sinon titanic.columns serait OK
+]
 
-check_name_formatting(connection=con, df=titanic)
+check_code_commune_formatting(connection=con, df=dvf_attributs)
 
 for var in column_names:
-    check_missing_values(connection=con, df=titanic, variable=var)
+    check_missing_values(connection=con, df=dvf_attributs, variable=var)
 
 
-# FEATURE ENGINEERING    -----------------------------------------
+# SCOPE RESTRICTION ---------------------------------------
 
-logging.debug(f"\n{80*'-'}\nStarting feature engineering phase\n{80*'-'}")
+logger.info("Restriction aux départements de la petite couronne")
+
+dvf = dvf.loc[dvf["code_departement"].isin(DEPARTEMENTS_PARIS)]
+dvf = dvf.loc[dvf["valeur_fonciere"] < 1e6]
 
 
-y = titanic["Survived"]
-X = titanic.drop("Survived", axis="columns")
+# ADDITIONAL DATA ---------------------------------------
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+dvf = add_filosofi_carreaux(dvf, DATA_LOCATION / "filosofi_carreaux_200m_2021.parquet")
+dvf = add_filosofi_communes(dvf, jeton_api)
+
+logger.debug(f"Aperçu des données enrichies:\n{dvf.head(5)}")
+
+
+# DESCRIPTIVE STATISTICS ---------------------------------------
+
+logger.debug(f"\n{80 * '-'}\nStatistiques descriptives\n{80 * '-'}")
+
+sns.histplot(data=dvf, x="valeur_fonciere")
+sns.histplot(data=dvf, x="valeur_fonciere", log_scale=True)
+
+grid = sns.scatterplot(data=dvf, x="surface_reelle_bati", y="valeur_fonciere")
+grid.set(xscale="log", yscale="log")
+
+
+# FEATURE ENGINEERING ---------------------------------------
+
+logger.debug(f"\n{80 * '-'}\nFeature engineering\n{80 * '-'}")
+
+dvf = build_features(dvf)
+
+# Missing features are imputed in the pipeline: only rows without a target
+# are dropped.
+dvf_start_data = dvf.dropna(subset=["prix_m2"])
+
+
+# PRICE PER M² BY MUNICIPALITY ---------------------------------------
+
+prix_m2_commune = (
+    dvf.groupby(["code_commune", "nom_commune"])["prix_m2"].mean().sort_values()
+)
+
+logger.info(f"Communes au prix au m2 le plus bas :\n{prix_m2_commune.head(5)}")
+logger.info(f"Communes au prix au m2 le plus élevé :\n{prix_m2_commune.tail(5)}")
+
+
+# TRAIN/TEST SPLIT ---------------------------------------
+
+features = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+X = dvf_start_data[features]
+y = dvf_start_data["prix_m2"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=0)
+
+DERIVED_DATA_LOCATION.mkdir(parents=True, exist_ok=True)
+pd.concat([X_train, y_train], axis=1).to_csv(DERIVED_DATA_LOCATION / "train.csv")
+pd.concat([X_test, y_test], axis=1).to_csv(DERIVED_DATA_LOCATION / "test.csv")
+
+
+# SPLIT VALIDATION ---------------------------------------
 
 for string_var in CATEGORICAL_FEATURES:
-    check_data_leakage(X_train, X_test, string_var)
+    check_unseen_categories(X_train, X_test, string_var)
 
 
-# MODEL DEFINITION -----------------------------------------
+# TRAINING AND EVALUATION ---------------------------------------
 
-numeric_transformer = Pipeline(
-    steps=[
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", MinMaxScaler()),
-    ]
+logger.debug(f"\n{80 * '-'}\nEntraînement du modèle\n{80 * '-'}")
+
+pipe = create_pipeline(
+    NUMERIC_FEATURES,
+    CATEGORICAL_FEATURES,
+    n_trees=n_trees,
+    learning_rate=LEARNING_RATE,
+    num_leaves=NUM_LEAVES,
 )
-
-categorical_transformer = Pipeline(
-    steps=[
-        ("imputer", SimpleImputer(strategy="most_frequent")),
-        ("onehot", OneHotEncoder()),
-    ]
-)
-
-
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("Preprocessing numerical", numeric_transformer, NUMERIC_FEATURES),
-        (
-            "Preprocessing categorical",
-            categorical_transformer,
-            CATEGORICAL_FEATURES,
-        ),
-    ]
-)
-
-pipe = Pipeline(
-    [
-        ("preprocessor", preprocessor),
-        (
-            "classifier",
-            RandomForestClassifier(
-                n_estimators=N_TREES, max_depth=MAX_DEPTH, max_features=MAX_FEATURES
-            ),
-        ),
-    ]
-)
-
-# TRAINING AND EVALUATION --------------------------------------------
-
-logging.debug(f"\n{80*'-'}\nStarting model fitting phase\n{80*'-'}")
-
 pipe.fit(X_train, y_train)
-rdmf_score = pipe.score(X_test, y_test)
-rdmf_score_tr = pipe.score(X_train, y_train)
 
-logging.info(f"{rdmf_score:.1%} de bonnes réponses sur les données de test pour validation")
+rmse_train = root_mean_squared_error(y_train, pipe.predict(X_train))
+rmse_test = root_mean_squared_error(y_test, pipe.predict(X_test))
+logger.info(f"RMSE sur l'apprentissage : {rmse_train:,.0f} €/m²")
+logger.info(f"RMSE sur le test : {rmse_test:,.0f} €/m²")
 
-logging.info("Matrice de confusion:")
-logging.info(confusion_matrix(y_test, pipe.predict(X_test)))
+cog = dvf_start_data[["code_commune", "nom_commune"]].drop_duplicates()
+rmse_commune = rmse_by_commune(pipe, X_test, y_test, cog)
 
-logging.debug(f"\n{80*'-'}\nFILE ENDED SUCCESSFULLY!\n{80*'-'}")
+logger.info(f"Communes avec la RMSE la plus faible :\n{rmse_commune.head(5)}")
+logger.info(f"Communes avec la RMSE la plus élevée :\n{rmse_commune.tail(5)}")
+
+
+# EVALUATION WITH SKORE ---------------------------------------
+
+logger.debug(f"\n{80 * '-'}\nÉvaluation du modèle avec skore\n{80 * '-'}")
+
+evaluate_with_skore(pipe, X_train, y_train, X_test, y_test)
+
+logger.debug(f"\n{80 * '-'}\nFIN DU SCRIPT !\n{80 * '-'}")

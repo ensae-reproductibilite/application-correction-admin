@@ -25,17 +25,8 @@ for folder in "$FOLDER_PATH"*; do
     find . -mindepth 1 -maxdepth 1 ! -name "admin" ! -name ".git" ! -name ".github" -exec rm -rf {} \;
 
     # Copy new files from the corresponding folder subdirectory
-    cp -r "$folder"/* .
-
-    # Copy .gitignore if it exists
-    if [ -f "$folder/.gitignore" ]; then
-      cp "$folder/.gitignore" .
-    fi
-
-    # Copy .github/ directory if it exists
-    if [ -d "$folder/.github" ]; then
-      cp -r "$folder/.github" .
-    fi
+    # (including hidden files: .gitignore, .github/, .pre-commit-config.yaml...)
+    cp -r "$folder"/. .
 
     # Add, commit, tag
     git add -- . ':!admin'

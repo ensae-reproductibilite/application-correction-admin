@@ -1,17 +1,14 @@
-FROM ubuntu:22.04
+FROM astral/uv:python3.13-trixie-slim
 
-# Install Python
+# System dependency needed by lightgbm
 RUN apt-get -y update && \
-    apt-get install -y python3-pip curl
+    apt-get install -y libgomp1
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin/:$PATH"
-
-# Install project dependencies
+# Install project dependencies (development ones excluded, also for uv run)
+ENV UV_NO_DEV=1
 COPY pyproject.toml .
 RUN uv sync
 
-COPY train.py .
+COPY main.py .
 COPY src ./src
-CMD ["uv", "run", "train.py"]
+CMD ["uv", "run", "main.py"]

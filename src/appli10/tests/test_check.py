@@ -1,39 +1,34 @@
 import unittest
+
 import pandas as pd
 
-from src.validation.check import check_data_leakage
+from dvfml.data.check import check_unseen_categories
 
 
-class TestCheckDataLeakage(unittest.TestCase):
+class TestCheckUnseenCategories(unittest.TestCase):
+    def test_warns_when_test_has_unseen_category(self):
+        # 75101 only appears in the test set: the model has never seen it
+        train = pd.DataFrame({"code_commune": ["92012", "93066"]})
+        test = pd.DataFrame({"code_commune": ["92012", "75101"]})
 
-    def test_logs_error_when_train_has_unseen_values(self):
-        # Train contient une modalité "X" absente du test => data leakage
-        train = pd.DataFrame({"Sex": ["male", "female", "X", None]})
-        test = pd.DataFrame({"Sex": ["male", "female", None]})
+        with self.assertLogs("dvfml.data.check", level="WARNING") as cm:
+            check_unseen_categories(train, test, variable="code_commune")
 
-        # assertLogs capture les logs du logger root (logging.*)
-        with self.assertLogs(level="ERROR") as cm:
-            check_data_leakage(train, test, variable="Sex")
-
-        # cm.output est une liste de strings du style:
-        # ["ERROR:root:Problème de data leakage pour la variable Sex"]
-        self.assertTrue(
-            any("Problème de data leakage pour la variable Sex" in msg for msg in cm.output)
+        self.assertIn(
+            "Categories of code_commune missing from the training set", cm.output[0]
         )
 
-    def test_logs_info_when_values_are_covered(self):
-        # Toutes les modalités de train sont couvertes dans test (hors NaN) => OK
-        train = pd.DataFrame({"Embarked": ["S", "C", None, "Q"]})
-        test = pd.DataFrame({"Embarked": ["S", "C", "Q", None]})
+    def test_info_when_test_categories_are_known(self):
+        # Categories only present in train are not an issue, missing values are ignored
+        train = pd.DataFrame({"type_local": ["Appartement", "Maison", None]})
+        test = pd.DataFrame({"type_local": ["Appartement", None]})
 
-        with self.assertLogs(level="INFO") as cm:
-            check_data_leakage(train, test, variable="Embarked")
+        with self.assertLogs("dvfml.data.check", level="INFO") as cm:
+            check_unseen_categories(train, test, variable="type_local")
 
-        self.assertTrue(
-            any(
-                "Pas de problème de data leakage pour la variable Embarked" in msg
-                for msg in cm.output
-            )
+        self.assertEqual(len(cm.output), 1)
+        self.assertIn(
+            "All test categories of type_local are known to the model", cm.output[0]
         )
 
 
