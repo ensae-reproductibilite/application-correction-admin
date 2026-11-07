@@ -23,7 +23,7 @@ def check_code_commune_formatting(
         "OR NOT starts_with(code_commune, code_departement)"
     )
 
-    bad = connection.sql(query).fetchone()[0]
+    bad = connection.sql(query).fetchall()[0][0]
 
     if bad == 0:
         logger.info(
@@ -42,7 +42,7 @@ def check_missing_values(
 
     query = f"SELECT COUNT(*) AS n_missing FROM df WHERE {variable} IS NULL"
 
-    n_missing = connection.sql(query).fetchone()[0]
+    n_missing = connection.sql(query).fetchall()[0][0]
 
     message_ok = f"No missing values for variable {variable}"
     message_warn = f"{n_missing} missing values for variable {variable}"

@@ -17,7 +17,7 @@ def check_name_formatting(
         "WHERE list_count(string_split(Name, ',')) <> 2"
     )
 
-    bad = connection.sql(query).fetchone()[0]
+    bad = connection.sql(query).fetchall()[0][0]
 
     if bad == 0:
         logging.info(
@@ -36,7 +36,7 @@ def check_missing_values(
 
     query = f"SELECT COUNT(*) AS n_missing FROM titanic WHERE {variable} IS NULL"
 
-    n_missing = connection.sql(query).fetchone()[0]
+    n_missing = connection.sql(query).fetchall()[0][0]
 
     message_ok = f"Pas de valeur manquante pour la variable {variable}"
     message_warn = f"{n_missing} valeurs manquantes pour la variable {variable}"

@@ -97,7 +97,7 @@ bad = con.sql("""
     FROM dvf_attributs
     WHERE length(code_commune) <> 5
     OR NOT starts_with(code_commune, code_departement)
-""").fetchone()[0]
+""").fetchall()[0][0]
 
 if bad == 0:
     print("Test OK: code_commune always has 5 characters starting with the department")
@@ -109,7 +109,7 @@ n_missing = con.sql("""
     SELECT COUNT(*) AS n_missing
     FROM dvf_attributs
     WHERE valeur_fonciere IS NULL
-""").fetchone()[0]
+""").fetchall()[0][0]
 
 message_ok = "No missing values for variable valeur_fonciere"
 message_warn = f"{n_missing} missing values for variable valeur_fonciere"
@@ -120,7 +120,7 @@ n_missing = con.sql("""
     SELECT COUNT(*) AS n_missing
     FROM dvf_attributs
     WHERE surface_reelle_bati IS NULL
-""").fetchone()[0]
+""").fetchall()[0][0]
 
 message_ok = "No missing values for variable surface_reelle_bati"
 message_warn = f"{n_missing} missing values for variable surface_reelle_bati"
