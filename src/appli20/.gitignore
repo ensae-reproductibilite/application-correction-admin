@@ -1,6 +1,7 @@
-config.yaml
-__pycache__/
 .env
+__pycache__/
 *.log
-data/
+/data/
+*.parquet
+.venv/
 model.skops
