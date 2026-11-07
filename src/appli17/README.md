@@ -28,25 +28,6 @@ Lancer ensuite l'entraînement du modèle, qui sauvegarde le modèle dans `model
 uv run train.py
 ```
 
-## API
-
-Une fois le modèle entraîné, lancer l'API:
-
-```bash
-uv run uvicorn app.api:app
-```
-
-Elle estime le prix au m² d'un logement à partir de son adresse (Paris et
-petite couronne uniquement). La documentation interactive est disponible sur
-http://127.0.0.1:8000/docs. Exemple:
-
-```bash
-curl -G "http://127.0.0.1:8000/predict" \
-  --data-urlencode "adresse=12 rue de Paris 93100 Montreuil" \
-  --data-urlencode "type_local=Appartement" \
-  -d surface=65 -d nombre_pieces=3
-```
-
 ## Contribuer
 
 Avant chaque _commit_, un _hook_ `pre-commit` vérifie le code avec `ruff`

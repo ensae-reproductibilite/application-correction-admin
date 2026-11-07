@@ -6,22 +6,10 @@ import logging
 
 import duckdb
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import requests
 
 logger = logging.getLogger(__name__)
-
-# Filosofi columns we keep, raw name -> our name
-FILOSOFI_COLUMNS = {
-    "men": "nbre_menages",
-    "men_pauv": "nbre_menages_pauvres",
-    "men_prop": "nbre_menages_prop",
-    "ind_snv": "somme_nv_vie",
-    "log_soc": "nbre_logements_sociaux",
-    "log_av45": "nbre_logements_avant_1945",
-    "men_surf": "surface_totale_logements",
-}
 
 
 def get_melodi_indicator(
@@ -70,7 +58,13 @@ def add_filosofi_carreaux(
     filo_cols = [
         "idcar_200m",
         "ind",
-        *FILOSOFI_COLUMNS,
+        "men",
+        "men_pauv",
+        "men_prop",
+        "ind_snv",
+        "log_soc",
+        "log_av45",
+        "men_surf",
         "geometry",
     ]
     # The GeoParquet bbox column (EPSG:3035) lets us read only the cells that
@@ -88,7 +82,17 @@ def add_filosofi_carreaux(
         geometry=gpd.GeoSeries.from_wkb(filo["geometry"].apply(bytes)),
         crs="EPSG:3035",
     )
-    filo = filo.rename(columns=FILOSOFI_COLUMNS)
+    filo = filo.rename(
+        columns={
+            "men": "nbre_menages",
+            "men_pauv": "nbre_menages_pauvres",
+            "men_prop": "nbre_menages_prop",
+            "ind_snv": "somme_nv_vie",
+            "log_soc": "nbre_logements_sociaux",
+            "log_av45": "nbre_logements_avant_1945",
+            "men_surf": "surface_totale_logements",
+        }
+    )
 
     logger.info(
         f"Reprojection de {dvf.shape[0]} transactions immobilières "
@@ -116,39 +120,3 @@ def add_filosofi_communes(dvf: gpd.GeoDataFrame, jeton_api: str) -> gpd.GeoDataF
         ).drop(columns="CODGEO")
 
     return dvf
-
-
-def get_filosofi_carreau(
-    longitude: float,
-    latitude: float,
-    connection: duckdb.DuckDBPyConnection,
-    url_filosofi: str,
-) -> pd.DataFrame:
-    """Return the Filosofi 200m cell containing a point, as a one-row DataFrame
-
-    Used to describe a single address at prediction time: the same columns as
-    add_filosofi_carreaux are returned, with NaN if the point lies in no cell.
-    """
-    connection.execute("INSTALL spatial")
-    connection.execute("LOAD spatial")
-
-    colonnes = ["idcar_200m", "ind", *FILOSOFI_COLUMNS]
-    # The point is projected to EPSG:3035, the CRS of the cells, as in
-    # add_filosofi_carreaux. The bbox column limits the rows read.
-    filo = connection.sql(f"""
-        WITH pt AS (
-            SELECT ST_Transform(
-                ST_Point({longitude}, {latitude}), 'EPSG:4326', 'EPSG:3035',
-                always_xy := true
-            ) AS p
-        ),
-        xy AS (SELECT ST_X(p) x, ST_Y(p) y, p FROM pt)
-        SELECT {", ".join(colonnes)}
-        FROM read_parquet('{url_filosofi}'), xy
-        WHERE bbox.xmin <= x AND bbox.xmax >= x AND bbox.ymin <= y AND bbox.ymax >= y
-        AND ST_Contains(geometry, p)
-    """).to_df()
-
-    if filo.empty:
-        filo = pd.DataFrame([{col: np.nan for col in colonnes}])
-    return filo.rename(columns=FILOSOFI_COLUMNS)

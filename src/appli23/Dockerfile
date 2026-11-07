@@ -1,15 +1,15 @@
-FROM astral/uv:python3.13-trixie-slim
+FROM python:3.13-slim
 
 # System dependency needed by lightgbm
 RUN apt-get -y update && \
     apt-get install -y libgomp1
 
-# Install project dependencies (development ones excluded, also for uv run)
-ENV UV_NO_DEV=1
-COPY pyproject.toml .
-RUN uv sync
+# Install project dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-COPY app ./app
-COPY train.py .
 COPY src ./src
+COPY train.py .
+COPY app ./app
+
 CMD ["bash", "-c", "./app/run.sh"]

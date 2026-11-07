@@ -4,5 +4,7 @@ repos:
     hooks:
       # Linter
       - id: ruff-check
+        types_or: [python, pyi]
       # Formatter
       - id: ruff-format
+        types_or: [python, pyi]

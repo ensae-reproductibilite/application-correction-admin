@@ -64,13 +64,6 @@ parser.add_argument(
 parser.add_argument(
     "--cv", type=int, default=5, help="Nombre de folds pour la cross-validation"
 )
-parser.add_argument(
-    "--max_features",
-    type=str, default="sqrt",
-    choices=['sqrt', 'log2'],
-    help="Number of features to consider when looking for the best split"
-)
-
 args = parser.parse_args()
 
 n_trees_default = args.n_trees
@@ -166,7 +159,7 @@ param_grid = {
         n_trees_default,
     ],
     "classifier__max_depth": [3, 5],
-    "classifier__max_features": [args.max_features],
+    "classifier__max_features": ["sqrt", "log2"],
     "classifier__min_samples_split": [2, 5]
 }
 
@@ -216,6 +209,7 @@ with mlflow.start_run():
     for param, value in best_params.items():
         mlflow.log_param(param, value)
 
+
     # Sauvegarde du meilleur pipeline complet
     sio.dump(best_model, "model.skops")
 
@@ -233,7 +227,7 @@ with mlflow.start_run():
     mlflow.log_metric("accuracy", test_score)
 
     matrix = confusion_matrix(y_test, best_model.predict(X_test))
-
+    
     logging.info("Matrice de confusion (test):")
     logging.info(matrix)
 
@@ -246,4 +240,4 @@ with mlflow.start_run():
     mlflow.log_artifact(matrix_path)
 
     # Log model
-    mlflow.sklearn.log_model(best_model, "model")
+    mlflow.sklearn.log_model(pipe, "model")

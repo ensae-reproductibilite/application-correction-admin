@@ -1,11 +1,17 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-# Ensure everything is installed
-sudo apt-get -y update
-sudo apt-get install -y python3-pip python3-venv curl
+# Install Python
 
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
+apt-get -y update
 
-# Restore environment
-uv sync
+apt-get install -y python3-pip python3-venv
+
+# Create empty virtual environment
+
+python3 -m venv titanic
+
+source titanic/bin/activate
+
+# Install project dependencies
+
+pip install -r requirements.txt

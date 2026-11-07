@@ -1,11 +1,15 @@
 config.yaml
 __pycache__/
-data/**/*.csv
-data/**/*.parquet
-titanic/
-model.joblib
+.env
+*.log
+data/
+model.skops
+/.quarto/
+**/*.quarto_ipynb
 
 /.quarto/
 *.html
 *_files
 _site/
+mlruns/*
+confusion_matrix.txt

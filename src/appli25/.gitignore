@@ -12,4 +12,3 @@ model.skops
 *_files
 _site/
 mlruns/*
-confusion_matrix.txt
