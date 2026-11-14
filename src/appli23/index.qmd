@@ -26,7 +26,7 @@ viewof nombre_pieces = Inputs.range([1, 10], {step: 1, value: 2, label: "Nombre 
 __Estimation de notre modèle__ :
 
 ```{ojs}
-md`**Prix estimé** : ${prediction.prix_estime.toLocaleString("fr-FR")} € (${prediction.prix_m2.toLocaleString("fr-FR")} €/m²) pour le ${prediction.adresse}`
+md`**Prix estimé** : ${prediction.prix_estime.toLocaleString("fr-FR")} € (${prediction.prix_m2.toLocaleString("fr-FR")} €/m²) — adresse retenue : ${prediction.adresse}`
 ```
 
 ```{ojs}

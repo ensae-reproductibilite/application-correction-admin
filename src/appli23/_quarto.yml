@@ -12,6 +12,7 @@ website:
 
 format:
   html:
+    lang: fr
     theme: cosmo
     css: styles.css
     toc: true
