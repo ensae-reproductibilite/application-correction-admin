@@ -116,7 +116,7 @@ export function afficherCommunes(carte, contours) {
   carte.addLayer({
     id: "communes-fill", type: "fill", source: "communes",
     paint: {
-      "fill-color": ["case", ["has", "prix_m2"], interpolation(prix), "#cccccc"],
+      "fill-color": ["case", ["!=", ["get", "prix_m2"], null], interpolation(prix), "#cccccc"],
       // La couche s'efface progressivement pour laisser voir les parcelles
       "fill-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.7, ZOOM_PARCELLES, 0.1],
     },
