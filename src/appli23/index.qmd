@@ -1,73 +1,48 @@
 ---
-title: "Jake avait-il une chance de survivre ?"
+title: "Combien vaut ce logement ?"
 echo: false
 ---
 
-Grâce à notre modèle, on peut répondre à cette question cruciale: 
-
-__Jake était-il condamné dès le début ?__
+Notre modèle estime le prix d'un logement à Paris et dans la petite couronne (92, 93, 94) à partir de son adresse, en s'appuyant sur les transactions DVF de 2022 enrichies par des données socio-économiques Filosofi.
 
 ```{ojs}
-viewof gender = Inputs.radio(
-    new Map([
-        ["Jake", "male"], 
-        ["Rose", "female"]
-    ]), 
-    {
-        value: "male", 
-        label: html`<b>Personnage</b>`,
-        format: ([name, value]) => {
-            let imageUrl = value == "male" ? 
-                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRM_MvbRXood7sNkM9z5OEVk_AeIhmWwLon1vvBuIYjOpCD394wNGdoAYloymicchUpgZU&usqp=CAU" : 
-                "https://static1.purebreak.com/articles/4/18/97/24/@/705016-titanic-decouvrez-quelle-autre-actrice-diapo-3.jpg";
-            return html`<div style="text-align: center;">
-                            <span style="display: block; text-transform: capitalize;">${value == "male" ? "Jake" : "Rose"}</span>
-                            <img src="${imageUrl}" style="width: 200px; height: auto; display: block; margin: 0 auto;">
-                        </div>`;
-        }
-    }
-)
-```
-
-
-```{ojs}
-viewof age = Inputs.range([0, 100], {step: 1, value: 19, label: "Âge au moment de l'accident"})
+viewof adresse = Inputs.text({label: "Adresse", value: "20 avenue de Ségur 75007 Paris", submit: "Estimer"})
 ```
 
 ```{ojs}
-viewof class_boat = Inputs.radio(
-    new Map([["Première", 1], ["Deuxième", 2], ["Troisième", 3]]),
-    {value: default_class, label: "Classe sur le bateau"}
-)
+viewof type_local = Inputs.radio(["Appartement", "Maison"], {value: "Appartement", label: "Type de logement"})
+```
+
+```{ojs}
+viewof surface = Inputs.range([9, 300], {step: 1, value: 45, label: "Surface (m²)"})
+```
+
+```{ojs}
+viewof nombre_pieces = Inputs.range([1, 10], {step: 1, value: 2, label: "Nombre de pièces"})
 ```
 
 <br>
 
-__Prédiction de notre modèle__:
+__Estimation de notre modèle__ :
 
 ```{ojs}
-d3.json(prediction)
+md`**Prix estimé** : ${prediction.prix_estime.toLocaleString("fr-FR")} € (${prediction.prix_m2.toLocaleString("fr-FR")} €/m²) pour le ${prediction.adresse}`
 ```
 
 ```{ojs}
-apiRoot = "https://titanic-ensae.lab.sspcloud.fr"
+apiRoot = "https://api-dvf-test.lab.sspcloud.fr"
 ```
 
 ```{ojs}
-prediction = `${apiRoot}/predict?pclass=${class_boat}&sex=${gender}&age=${age}&sib_sp=1&parch=1&fare=16.5&embarked=S&title=${title}&has_cabin=1&ticket_len=7`
+prediction_url = `${apiRoot}/predict?adresse=${encodeURIComponent(adresse)}&type_local=${type_local}&surface=${surface}&nombre_pieces=${nombre_pieces}`
 ```
 
 ```{ojs}
-title = gender == "male" ? "Mr." : "Miss."
-```
-
-```{ojs}
-default_class = gender == "male" ? 3 : 1
+prediction = d3.json(prediction_url)
 ```
 
 
 ## Documentation de l'API
 
-Retrouver l'API sur [https://titanic-ensae.lab.sspcloud.fr/docs](https://titanic.lab.sspcloud.fr/docs) pour jouer avec
-d'autres exemples. 
-
+Retrouver l'API sur [https://api-dvf-test.lab.sspcloud.fr/docs](https://api-dvf-test.lab.sspcloud.fr/docs) pour jouer avec
+d'autres exemples.

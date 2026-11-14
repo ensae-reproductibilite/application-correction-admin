@@ -1,12 +1,14 @@
 project:
   type: website
+  render:
+    - index.qmd
 
 website:
-  title: "Mysite"
+  title: "Prix de l'immobilier en petite couronne"
   navbar:
     left:
       - href: index.qmd
-        text: Home
+        text: Accueil
 
 format:
   html:
