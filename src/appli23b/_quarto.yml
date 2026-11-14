@@ -2,6 +2,7 @@ project:
   type: website
   render:
     - index.qmd
+    - a-propos.qmd
   resources:
     - js/
 
@@ -11,6 +12,8 @@ website:
     left:
       - href: index.qmd
         text: Accueil
+      - href: a-propos.qmd
+        text: À propos
 
 format:
   html:
@@ -18,4 +21,3 @@ format:
     theme: cosmo
     css: styles.css
     toc: false
-    page-layout: full

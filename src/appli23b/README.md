@@ -64,9 +64,10 @@ l'API sur le port 8000 (écoute sur l'adresse `0.0.0.0`).
 L'API est déployée sur Kubernetes avec ArgoCD. Les manifestes de déploiement
 ne sont pas dans ce dépôt mais dans le dépôt GitOps `application-deployment`,
 que ArgoCD surveille. L'API est disponible à l'adresse
-https://api-dvf-test.lab.sspcloud.fr (à remplacer par votre propre URL). Le site affiche une carte interactive (communes puis parcelles
-cadastrales colorées selon le prix médian au m²) : les données DVF sont lues dans
-le navigateur avec DuckDB-WASM et l'estimation est obtenue en appelant l'API.
+https://api-dvf-test.lab.sspcloud.fr (à remplacer par votre propre URL). La page d'accueil est une carte (fond IGN, sections puis
+parcelles cadastrales colorées selon le prix médian au m²) : les ventes DVF sont
+lues dans le navigateur avec DuckDB-WASM, et l'API n'est appelée que pour estimer
+le prix d'une vente choisie (`index.qmd` et modules `js/`, page `a-propos.qmd`).
 
 ## Site web
 

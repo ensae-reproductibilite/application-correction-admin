@@ -1,7 +1,8 @@
-/* Carte : hauteur fixe, MapLibre remplit son conteneur */
+/* Page d'accueil : la carte occupe tout l'écran sous la barre de navigation */
+html:has(.carte) { overflow: hidden; }
 .carte {
   position: relative;
-  height: 600px;
+  height: calc(100vh - 56px);
   width: 100%;
 }
 
@@ -19,5 +20,39 @@
 .legende .degrade { height: 10px; width: 180px; margin: 4px 0 2px; }
 .legende .bornes { display: flex; justify-content: space-between; }
 
-/* Infobulle au survol d'une commune */
+/* Éléments posés sur la carte : indicateur de chargement et recherche d'adresse */
+.indicateur, .recherche {
+  position: fixed;
+  z-index: 5;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.indicateur { bottom: 24px; left: 50%; transform: translateX(-50%); }
+.indicateur p, .recherche form { margin: 0; }
+.recherche { top: 66px; left: 10px; }
+
+/* Bandeau des ventes : à droite, masqué tant qu'aucune parcelle n'est choisie */
+.bandeau {
+  display: none;
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 100vw;
+  z-index: 10;
+  padding: 12px 16px;
+  overflow-y: auto;
+  background: #fff;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.25);
+  font-size: 0.9em;
+}
+.bandeau.ouvert { display: block; }
+.bandeau .entete { display: flex; justify-content: space-between; align-items: center; }
+.bandeau .fermer { border: 0; background: none; font-size: 1.6em; line-height: 1; cursor: pointer; }
+.bandeau .erreur { color: #bd0026; }
+
+/* Infobulles de MapLibre */
 .maplibregl-popup-content { font-size: 0.85em; padding: 6px 10px; }

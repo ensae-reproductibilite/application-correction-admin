@@ -1,33 +1,62 @@
-// Visualisations. `Plot` (Observable Plot) est passé en argument depuis la page.
+// Contenu du bandeau : tableau des ventes et bloc d'estimation.
+// Les bibliothèques d'Observable (`Inputs`, `Plot`) sont passées en argument depuis la page.
 
-const euros = (x) => Math.round(x).toLocaleString("fr-FR");
+const euros = (x) => `${Math.round(x).toLocaleString("fr-FR")} €`;
 
-// Histogramme des prix au m² d'une commune, avec le prix estimé en trait vertical
-export function histogrammePrix(Plot, prix, prixEstime, nomCommune) {
-  return Plot.plot({
-    title: `Prix au m² des ventes à ${nomCommune}`,
-    width: 640,
-    height: 300,
-    x: { label: "Prix au m² (€)" },
-    y: { label: "Nombre de ventes" },
-    marks: [
-      Plot.rectY(prix, Plot.binX({ y: "count" }, { x: (d) => d, fill: "#9ecae1", thresholds: 30 })),
-      Plot.ruleX([prixEstime], { stroke: "#bd0026", strokeWidth: 2 }),
-      Plot.text([prixEstime], { x: (d) => d, text: () => "estimation", frameAnchor: "top", dy: -8, fill: "#bd0026" }),
-      Plot.ruleY([0]),
-    ],
+// Tableau des ventes d'une parcelle ; la ligne sélectionnée est la valeur de l'élément
+// (la première par défaut). Sans vente, un élément vide de valeur null.
+export function tableVentes(Inputs, ventes) {
+  if (!ventes.length) {
+    const vide = document.createElement("p");
+    vide.textContent = "Aucune vente sur cette parcelle.";
+    vide.value = null;
+    return vide;
+  }
+  return Inputs.table(ventes, {
+    multiple: false, required: true, value: ventes[0], rows: 6, maxHeight: 220,
+    columns: ["date_mutation", "type_local", "surface", "pieces", "valeur", "prix_m2"],
+    header: {
+      date_mutation: "Date", type_local: "Type", surface: "Surface", pieces: "Pièces",
+      valeur: "Valeur foncière", prix_m2: "Prix au m²",
+    },
+    format: {
+      surface: (x) => `${x} m²`, valeur: euros, prix_m2: euros,
+    },
   });
 }
 
-// Tableau des ventes d'une parcelle
-export function tableVentes(idParcelle, ventes) {
-  const div = document.createElement("div");
-  const lignes = ventes.map((v) => `<tr><td>${v.date_mutation}</td><td>${v.type_local}</td>
-    <td>${v.surface} m²</td><td>${v.pieces} p.</td><td>${euros(v.valeur)} €</td>
-    <td>${euros(v.prix_m2)} €/m²</td></tr>`).join("");
-  div.innerHTML = ventes.length
-    ? `<p><strong>Parcelle ${idParcelle}</strong> : ${ventes.length} vente(s) en 2022</p>
-       <table class="table table-sm"><tbody>${lignes}</tbody></table>`
-    : `<p>Parcelle ${idParcelle} : aucune vente.</p>`;
-  return div;
+// Prix réel et prix estimé côte à côte, avec leur écart
+export function blocEstimation(Plot, vente, prediction) {
+  const bloc = document.createElement("div");
+  if (!prediction || prediction.enCours || prediction.annule) {
+    bloc.textContent = "Estimation en cours…";
+    return bloc;
+  }
+  if (prediction.erreur) {
+    bloc.innerHTML = `<p class="erreur"><strong>Erreur</strong> : ${prediction.erreur}</p>`;
+    return bloc;
+  }
+  const ecart = prediction.prix_estime - vente.valeur;
+  const signe = ecart > 0 ? "+" : "";
+  const donnees = [
+    { libelle: "Prix de vente", prix: vente.valeur },
+    { libelle: "Estimation du modèle", prix: prediction.prix_estime },
+  ];
+  bloc.innerHTML = `<p><strong>Estimation</strong> : ${euros(prediction.prix_estime)}
+    (${euros(prediction.prix_m2)}/m²)<br><strong>Prix de vente</strong> : ${euros(vente.valeur)}
+    (${euros(vente.prix_m2)}/m²)<br>Écart : ${signe}${euros(ecart)}
+    (${signe}${Math.round((100 * ecart) / vente.valeur)} %)</p>`;
+  bloc.append(
+    Plot.plot({
+      width: 380, height: 110, marginLeft: 130,
+      x: { label: "Prix (€)", tickFormat: "s" },
+      y: { label: null },
+      marks: [
+        Plot.barX(donnees, { x: "prix", y: "libelle", fill: "libelle" }),
+        Plot.ruleX([0]),
+      ],
+      color: { range: ["#9ecae1", "#bd0026"], domain: ["Prix de vente", "Estimation du modèle"] },
+    })
+  );
+  return bloc;
 }
