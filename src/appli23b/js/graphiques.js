@@ -17,7 +17,7 @@ export function tableVentes(Inputs, ventes) {
     columns: ["date_mutation", "type_local", "surface", "pieces", "valeur", "prix_m2"],
     header: {
       date_mutation: "Date", type_local: "Type", surface: "Surface", pieces: "Pièces",
-      valeur: "Valeur foncière", prix_m2: "Prix au m²",
+      valeur: "Valeur", prix_m2: "€/m²",
     },
     format: {
       surface: (x) => `${x} m²`, valeur: euros, prix_m2: euros,

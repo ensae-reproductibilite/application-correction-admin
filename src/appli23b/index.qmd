@@ -83,8 +83,18 @@ viewof carte = {
 ```
 
 ```{ojs}
-html`<div class="entete"><strong>Parcelle ${parcelleChoisie ?? ""}</strong>
-  <button class="fermer" onclick=${() => { mutable parcelleChoisie = null; }}>×</button></div>`
+//| output: false
+fermerBandeau = () => { mutable parcelleChoisie = null; }
+```
+
+```{ojs}
+{
+  const entete = html`<div class="entete"><strong>Parcelle ${parcelleChoisie ?? ""}</strong></div>`;
+  const bouton = html`<button class="fermer">×</button>`;
+  bouton.onclick = fermerBandeau;
+  entete.append(bouton);
+  return entete;
+}
 ```
 
 ```{ojs}

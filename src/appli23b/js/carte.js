@@ -1,7 +1,7 @@
 // Rendu de la carte avec MapLibre GL JS. Aucune donnée n'est téléchargée ici
 // (hors tuiles) : les données arrivent en arguments, les clics repartent par des callbacks.
 
-const MAPLIBRE = "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist";
+const MAPLIBRE = "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1";
 const FOND = "https://data.geopf.fr/annexes/ressources/vectorTiles/styles/PLAN.IGN/gris.json";
 const URL_CADASTRE = "https://openmaptiles.geo.data.gouv.fr/data/cadastre.json";
 const POLICE = ["Source Sans Pro Bold"]; // police servie par le style IGN
@@ -13,20 +13,14 @@ const ECHELLE = [
   [3000, "#ffffb2"], [5000, "#fecc5c"], [7000, "#fd8d3c"], [10000, "#f03b20"], [14000, "#bd0026"],
 ];
 
-// Charge MapLibre (script UMD + feuille de style) une seule fois
-function chargerMaplibre() {
-  if (window.maplibregl) return Promise.resolve(window.maplibregl);
+// Charge MapLibre (module ESM + feuille de style). Le script UMD ne convient pas :
+// Quarto charge un chargeur AMD (require.js) qui l'empêche de définir window.maplibregl.
+async function chargerMaplibre() {
   const css = document.createElement("link");
   css.rel = "stylesheet";
-  css.href = `${MAPLIBRE}/maplibre-gl.css`;
+  css.href = `${MAPLIBRE}/dist/maplibre-gl.css`;
   document.head.append(css);
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `${MAPLIBRE}/maplibre-gl.js`;
-    script.onload = () => resolve(window.maplibregl);
-    script.onerror = () => reject(new Error("Chargement de MapLibre impossible"));
-    document.head.append(script);
-  });
+  return (await import(`${MAPLIBRE}/+esm`)).default;
 }
 
 function ajouterLegende(conteneur) {
@@ -87,7 +81,7 @@ export async function creerCarte(conteneur, { surSection, surParcelle }) {
   });
   carte.addLayer({
     id: "sections-label", type: "symbol", source: "cadastre", "source-layer": "sections",
-    minzoom: 12, filter: surDepartements,
+    minzoom: 13, filter: surDepartements,
     layout: { "text-field": ["get", "code"], "text-font": POLICE, "text-size": 13 },
     paint: { "text-color": "#1a5fb4", "text-halo-color": "#fff", "text-halo-width": 1.5 },
   });
