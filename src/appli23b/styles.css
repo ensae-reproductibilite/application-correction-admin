@@ -1,0 +1,23 @@
+/* Carte : hauteur fixe, MapLibre remplit son conteneur */
+.carte {
+  position: relative;
+  height: 600px;
+  width: 100%;
+}
+
+/* Légende superposée en bas à gauche de la carte */
+.legende {
+  position: absolute;
+  bottom: 24px;
+  left: 10px;
+  z-index: 1;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+.legende .degrade { height: 10px; width: 180px; margin: 4px 0 2px; }
+.legende .bornes { display: flex; justify-content: space-between; }
+
+/* Infobulle au survol d'une commune */
+.maplibregl-popup-content { font-size: 0.85em; padding: 6px 10px; }

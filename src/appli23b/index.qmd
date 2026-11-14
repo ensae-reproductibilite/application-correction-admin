@@ -1,0 +1,129 @@
+---
+title: "Combien vaut ce logement ?"
+echo: false
+---
+
+Notre modèle estime le prix d'un logement à Paris et dans la petite couronne (92, 93, 94) à partir de son adresse, en s'appuyant sur les transactions DVF de 2022.
+Cette page est un __frontend__ : elle s'exécute dans votre navigateur et ne fait appel au __backend__ (l'API) que pour l'estimation. Les données, la carte et les graphiques sont calculés localement.
+
+## Données
+
+Le navigateur télécharge les ventes DVF (fichier parquet) et les interroge avec DuckDB-WASM, une base de données qui tourne dans la page : aucun serveur n'intervient.
+
+```{ojs}
+//| output: false
+// La promesse est encapsulée pour que les cellules d'affichage puissent s'afficher pendant le chargement
+chargement = ({promesse: chargerVentes()})
+bd = chargement.promesse
+```
+
+```{ojs}
+{
+  yield md`Chargement des ventes…`;
+  const n = await nombreVentes(await chargement.promesse);
+  yield md`${n.toLocaleString("fr-FR")} ventes d'appartements et de maisons (moins d'un million d'euros) chargées.`;
+}
+```
+
+```{ojs}
+//| output: false
+import {chargerVentes, nombreVentes, medianeParCommune, medianeParParcelle, ventesDeParcelle, prixDeCommune, contoursCommunes, joindrePrix} from "./js/donnees.js"
+import {creerCarte, afficherCommunes, colorerParcelles, placerMarqueur} from "./js/carte.js"
+import {adresseDepuisPoint, pointDepuisAdresse, estimerPrix} from "./js/prediction.js"
+import {histogrammePrix, tableVentes} from "./js/graphiques.js"
+apiRoot = "https://api-dvf-test.lab.sspcloud.fr"
+```
+
+## Carte
+
+Les agrégats (médianes par commune puis par parcelle) sont calculés dans le navigateur par DuckDB-WASM, le fond de carte et le cadastre sont des tuiles téléchargées à la demande.
+Cliquez sur une commune pour zoomer ; à fort zoom, cliquez sur une parcelle colorée pour voir ses ventes, ou n'importe où pour remplir l'adresse du formulaire ci-dessous.
+
+```{ojs}
+//| output: false
+mutable clicCarte = null
+mutable parcelleChoisie = null
+```
+
+```{ojs}
+viewof carte = {
+  const div = html`<div class="carte"></div>`;
+  div.value = await creerCarte(div, {
+    surClic: async (lon, lat) => {
+      mutable clicCarte = {lon, lat, adresse: await adresseDepuisPoint(lon, lat)};
+    },
+    surParcelle: (id) => { mutable parcelleChoisie = id; }
+  });
+  return div;
+}
+```
+
+```{ojs}
+//| output: false
+// Une fois la carte, les contours et les médianes prêts, on les branche ensemble
+medianesCommunes = medianeParCommune(bd)
+contours = contoursCommunes()
+communes = joindrePrix(contours, medianesCommunes)
+afficherCommunes(carte, communes)
+colorerParcelles(carte, await medianeParParcelle(bd))
+```
+
+```{ojs}
+// Ventes de la parcelle cliquée
+parcelleChoisie ? tableVentes(parcelleChoisie, await ventesDeParcelle(bd, parcelleChoisie)) : md`*Cliquez sur une parcelle colorée (zoom élevé) pour voir ses ventes.*`
+```
+
+## Estimer un logement
+
+L'estimation est calculée par l'API : le navigateur lui envoie l'adresse et les caractéristiques, elle géocode l'adresse et applique le modèle.
+Le clic sur la carte remplit l'adresse grâce au géocodage inverse de la Géoplateforme, appelé depuis le navigateur.
+
+```{ojs}
+viewof adresseSaisie = Inputs.text({label: "Adresse", value: "20 avenue de Ségur 75007 Paris", width: 450})
+viewof type_local = Inputs.radio(["Appartement", "Maison"], {value: "Appartement", label: "Type de logement"})
+viewof surface = Inputs.range([9, 300], {step: 1, value: 45, label: "Surface (m²)"})
+viewof nombre_pieces = Inputs.range([1, 10], {step: 1, value: 2, label: "Nombre de pièces"})
+viewof demande = Inputs.button("Estimer", {value: null, reduce: () => ({
+  adresse: viewof adresseSaisie.value, type_local: viewof type_local.value,
+  surface: viewof surface.value, nombre_pieces: viewof nombre_pieces.value
+})})
+```
+
+```{ojs}
+//| output: false
+// Un clic sur la carte remplit le champ adresse et place le marqueur
+{
+  if (clicCarte && clicCarte.adresse) {
+    const champ = viewof adresseSaisie;
+    champ.value = clicCarte.adresse;
+    champ.dispatchEvent(new Event("input", {bubbles: true}));
+    placerMarqueur(carte, clicCarte.lon, clicCarte.lat);
+  }
+}
+```
+
+## Résultat
+
+```{ojs}
+//| output: false
+resultat = demande ? await estimerPrix({apiRoot, ...demande}) : null
+```
+
+```{ojs}
+{
+  if (!resultat) return md`*Renseignez le formulaire puis cliquez sur « Estimer ».*`;
+  if (resultat.erreur) return md`**Erreur** : ${resultat.erreur}`;
+  const point = await pointDepuisAdresse(resultat.adresse);
+  if (point) placerMarqueur(carte, point[0], point[1]);
+  const nom = communes.features.find((f) => f.properties.INSEE_COG === resultat.code_commune)?.properties.NOM ?? resultat.code_commune;
+  const prix = await prixDeCommune(bd, resultat.code_commune);
+  return html`<p><strong>Prix estimé</strong> : ${resultat.prix_estime.toLocaleString("fr-FR")} €
+    (${resultat.prix_m2.toLocaleString("fr-FR")} €/m²)<br>Adresse retenue : ${resultat.adresse}</p>
+    ${histogrammePrix(Plot, prix, resultat.prix_m2, nom)}`;
+}
+```
+
+## Documentation de l'API
+
+Retrouver l'API sur [https://api-dvf-test.lab.sspcloud.fr/docs](https://api-dvf-test.lab.sspcloud.fr/docs) pour jouer avec
+d'autres exemples.
