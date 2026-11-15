@@ -1,0 +1,52 @@
+name: Publish appli24 demo site
+
+# Publie sur GitHub Pages le site de la correction de l'application 24
+# (src/appli24), pour pouvoir le citer en illustration dans le cours.
+# Prérequis : Settings > Pages > Build and deployment > Source : GitHub Actions.
+# L'environnement github-pages n'autorise par défaut que la branche par défaut (main).
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/appli24/**"
+      - ".github/workflows/demo-appli24.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+      - name: Render src/appli24
+        uses: quarto-dev/quarto-actions/render@v2
+        with:
+          path: src/appli24
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: src/appli24/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
