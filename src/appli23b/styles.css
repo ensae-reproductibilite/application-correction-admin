@@ -61,3 +61,6 @@ html:has(.carte) { overflow: hidden; }
 .bandeau table { font-size: 0.8em; }
 .bandeau thead input[type=checkbox] { visibility: hidden; }
 .bandeau table th, .bandeau table td { padding: 2px 4px; }
+
+/* Titres des histogrammes du bandeau */
+.bandeau h2 { font-size: 0.95em; font-weight: 600; margin: 0; }

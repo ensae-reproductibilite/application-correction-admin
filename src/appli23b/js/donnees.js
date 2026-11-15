@@ -30,7 +30,7 @@ export async function chargerVentes() {
   // suffixe, voie, code postal sur 5 chiffres, commune (sans "Xe Arrondissement")
   await conn.query(`
     CREATE TABLE ventes AS
-    SELECT date_mutation, id_parcelle, type_local,
+    SELECT date_mutation, id_parcelle, type_local, nom_commune,
            surface_reelle_bati AS surface,
            nombre_pieces_principales::INTEGER AS pieces,
            valeur_fonciere AS valeur,
@@ -72,6 +72,14 @@ export function medianeParParcelleDeSection(conn, idSection) {
 // Ventes d'une parcelle, de la plus récente à la plus ancienne
 export function ventesDeParcelle(conn, idParcelle) {
   return requete(conn, `
-    SELECT date_mutation, type_local, surface, pieces, valeur, prix_m2, adresse
+    SELECT date_mutation, type_local, surface, pieces, valeur, prix_m2, adresse, nom_commune
     FROM ventes WHERE id_parcelle = '${sur(idParcelle)}' ORDER BY date_mutation DESC`);
+}
+
+// Prix au m² des ventes dont l'id de parcelle commence par `prefixe` :
+// 5 caractères pour une commune, 10 pour une section (pour les histogrammes)
+export async function prixParPrefixe(conn, prefixe) {
+  const lignes = await requete(conn, `
+    SELECT prix_m2 FROM ventes WHERE id_parcelle LIKE '${sur(prefixe)}%'`);
+  return lignes.map((l) => l.prix_m2);
 }

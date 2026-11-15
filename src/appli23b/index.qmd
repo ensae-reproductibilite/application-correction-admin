@@ -6,10 +6,10 @@ page-layout: custom
 
 ```{ojs}
 //| output: false
-import {chargerVentes, nombreVentes, medianeParParcelleDeSection, ventesDeParcelle} from "./js/donnees.js"
+import {chargerVentes, nombreVentes, medianeParParcelleDeSection, ventesDeParcelle, prixParPrefixe} from "./js/donnees.js"
 import {creerCarte, colorerParcelles, deselectionnerParcelle, placerMarqueur, allerA} from "./js/carte.js"
 import {pointDepuisAdresse, estimerPrix} from "./js/prediction.js"
-import {tableVentes, blocEstimation} from "./js/graphiques.js"
+import {tableVentes, blocEstimation, histogrammesPrix} from "./js/graphiques.js"
 apiRoot = "https://api-dvf-test.lab.sspcloud.fr"
 ```
 
@@ -136,5 +136,22 @@ prediction = {
 
 ```{ojs}
 vente ? blocEstimation(Plot, vente, prediction) : html``
+```
+
+```{ojs}
+//| output: false
+// Prix de la commune et de la section de la parcelle : une requête par parcelle choisie
+// (le préfixe de 5 caractères désigne la commune, celui de 10 la section)
+distributions = parcelleChoisie ? ({
+  commune: await prixParPrefixe(bd, parcelleChoisie.slice(0, 5)),
+  section: await prixParPrefixe(bd, parcelleChoisie.slice(0, 10))
+}) : null
+```
+
+```{ojs}
+vente && distributions ? histogrammesPrix(Plot, {
+  commune: {nom: vente.nom_commune, prix: distributions.commune},
+  section: {code: parcelleChoisie.slice(8, 10), prix: distributions.section}
+}, vente, prediction) : html``
 ```
 :::

@@ -60,3 +60,29 @@ export function blocEstimation(Plot, vente, prediction) {
   );
   return bloc;
 }
+
+// Deux histogrammes du prix au m² (commune puis section de la parcelle), avec le prix
+// de vente et, si disponible, l'estimation du modèle. `distributions` = {commune: {nom, prix}, section: {code, prix}}
+export function histogrammesPrix(Plot, distributions, vente, prediction) {
+  const div = document.createElement("div");
+  const estime = prediction && prediction.prix_m2 ? prediction.prix_m2 : null;
+  const reperes = [{ prix: vente.prix_m2, nom: "vente", couleur: "#9ecae1", ancre: "end" }];
+  if (estime) reperes.push({ prix: estime, nom: "estimation", couleur: "#bd0026", ancre: "start" });
+  const histogramme = (titre, valeurs) =>
+    Plot.plot({
+      title: titre, width: 440, height: 140, marginLeft: 40,
+      x: { label: "Prix au m² (€)", tickFormat: "s" },
+      y: { label: null, ticks: 3 },
+      marks: [
+        Plot.rectY(valeurs, Plot.binX({ y: "count" }, { x: (d) => d, fill: "#dcdcdc", thresholds: 30 })),
+        Plot.ruleX(reperes, { x: "prix", stroke: "couleur", strokeWidth: 2.5 }),
+        Plot.text(reperes, { x: "prix", text: "nom", fill: "couleur", textAnchor: "ancre", frameAnchor: "top", dy: -2, lineAnchor: "bottom", fontSize: 10 }),
+        Plot.ruleY([0]),
+      ],
+    });
+  div.append(
+    histogramme(`Prix au m² à ${distributions.commune.nom}`, distributions.commune.prix),
+    histogramme(`Prix au m² dans la section ${distributions.section.code}`, distributions.section.prix)
+  );
+  return div;
+}
