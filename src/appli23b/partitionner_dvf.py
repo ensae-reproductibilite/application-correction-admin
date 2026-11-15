@@ -50,7 +50,7 @@ if destination.startswith("s3://"):
             TYPE s3,
             KEY_ID '{os.environ["AWS_ACCESS_KEY_ID"]}',
             SECRET '{os.environ["AWS_SECRET_ACCESS_KEY"]}',
-            SESSION_TOKEN '{os.environ["AWS_SESSION_TOKEN"]}',
+            SESSION_TOKEN '{os.environ.get("AWS_SESSION_TOKEN", "")}',
             ENDPOINT '{os.environ["AWS_S3_ENDPOINT"]}',
             URL_STYLE 'path',
             REGION '{os.environ.get("AWS_DEFAULT_REGION", "us-east-1")}'
