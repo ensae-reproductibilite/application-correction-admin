@@ -76,6 +76,10 @@ workflow `.github/workflows/publish.yaml` le construit et le publie sur GitHub
 Pages, à l'adresse https://compte_github.github.io/application (à remplacer par
 votre propre URL).
 
+Les ventes DVF sont lues par département dans des fichiers parquet partitionnés,
+produits une seule fois avec `uv run partitionner_dvf.py s3://<bucket>/diffusion/dvf`
+(puis adapter `URL_DVF` dans `js/donnees.js`).
+
 Pour le prévisualiser en local, après avoir installé
 [Quarto](https://quarto.org/docs/get-started/):
 

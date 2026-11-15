@@ -3,8 +3,10 @@
 // colonnes et les lignes utiles sont téléchargées (requêtes "range").
 
 const DUCKDB = "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0";
+// Parquet DVF partitionné par département (voir partitionner_dvf.py). À remplacer par
+// votre propre dossier : https://minio.lab.sspcloud.fr/<bucket>/diffusion/dvf
 const URL_DVF =
-  "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/dvf.parquet";
+  "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/derived/dvf";
 const DEPARTEMENTS = ["75", "92", "93", "94"];
 
 // Démarre DuckDB-WASM, puis construit la table `ventes` (une ligne par ligne DVF).
@@ -22,7 +24,8 @@ export async function chargerVentes() {
   await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
   const conn = await db.connect();
 
-  const deps = DEPARTEMENTS.map((d) => `'${d}'`).join(", ");
+  // DuckDB-WASM ne sait pas explorer un dossier distant : on liste les 4 fichiers
+  const fichiers = DEPARTEMENTS.map((d) => `'${URL_DVF}/code_departement=${d}/dvf_0.parquet'`).join(", ");
   // L'adresse est reconstruite comme celle attendue par l'API : numéro (entier),
   // suffixe, voie, code postal sur 5 chiffres, commune (sans "Xe Arrondissement")
   await conn.query(`
@@ -35,9 +38,8 @@ export async function chargerVentes() {
            concat_ws(' ', adresse_numero::INTEGER, adresse_suffixe, adresse_nom_voie,
                      lpad(code_postal::INTEGER::VARCHAR, 5, '0'),
                      regexp_replace(nom_commune, ' [0-9]+(er|e) Arrondissement$', '')) AS adresse
-    FROM read_parquet('${URL_DVF}')
-    WHERE code_departement IN (${deps})
-      AND type_local IN ('Appartement', 'Maison')
+    FROM read_parquet([${fichiers}])
+    WHERE type_local IN ('Appartement', 'Maison')
       AND valeur_fonciere < 1e6 AND surface_reelle_bati > 0
   `);
   return conn;
