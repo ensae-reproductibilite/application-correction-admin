@@ -85,7 +85,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--n_trees", type=int, default=1500, help="Nombre d'arbres")
 parser.add_argument(
-    "--cv", type=int, default=3, help="Nombre de plis de la validation croisée"
+    "--cv", type=int, default=3, help="Nombre de folds de la validation croisée"
 )
 args = parser.parse_args()
 
