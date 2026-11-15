@@ -64,3 +64,4 @@ html:has(.carte) { overflow: hidden; }
 
 /* Titres des histogrammes du bandeau */
 .bandeau h2 { font-size: 0.95em; font-weight: 600; margin: 0; }
+.legende-histos { font-size: 0.85rem; margin: 0.5rem 0 0; }

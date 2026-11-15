@@ -66,8 +66,8 @@ export function blocEstimation(Plot, vente, prediction) {
 export function histogrammesPrix(Plot, distributions, vente, prediction) {
   const div = document.createElement("div");
   const estime = prediction && prediction.prix_m2 ? prediction.prix_m2 : null;
-  const reperes = [{ prix: vente.prix_m2, nom: "vente", couleur: "#9ecae1", ancre: "end" }];
-  if (estime) reperes.push({ prix: estime, nom: "estimation", couleur: "#bd0026", ancre: "start" });
+  const reperes = [{ prix: vente.prix_m2, nom: "Prix de vente", couleur: "#9ecae1" }];
+  if (estime) reperes.push({ prix: estime, nom: "Estimation du modèle", couleur: "#bd0026" });
   const histogramme = (titre, valeurs) =>
     Plot.plot({
       title: titre, width: 440, height: 140, marginLeft: 40,
@@ -76,11 +76,18 @@ export function histogrammesPrix(Plot, distributions, vente, prediction) {
       marks: [
         Plot.rectY(valeurs, Plot.binX({ y: "count" }, { x: (d) => d, fill: "#dcdcdc", thresholds: 30 })),
         Plot.ruleX(reperes, { x: "prix", stroke: "couleur", strokeWidth: 2.5 }),
-        Plot.text(reperes, { x: "prix", text: "nom", fill: "couleur", textAnchor: "ancre", frameAnchor: "top", dy: -2, lineAnchor: "bottom", fontSize: 10 }),
         Plot.ruleY([0]),
       ],
     });
+  // Une légende commune plutôt que des étiquettes sur les traits, qui se chevauchent
+  // quand les deux prix sont proches
+  const legende = document.createElement("p");
+  legende.className = "legende-histos";
+  legende.innerHTML = reperes
+    .map((r) => `<span style="color: ${r.couleur}">▍</span>${r.nom} (${euros(r.prix)}/m²)`)
+    .join(" &nbsp; ");
   div.append(
+    legende,
     histogramme(`Prix au m² à ${distributions.commune.nom}`, distributions.commune.prix),
     histogramme(`Prix au m² dans la section ${distributions.section.code}`, distributions.section.prix)
   );
