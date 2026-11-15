@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v4
         with:
             repository: 'ensae-reproductibilite/application'
-            ref: appli27
+            ref: appli28
 
       - name: Train Model
         run: |

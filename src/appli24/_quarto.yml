@@ -1,20 +1,28 @@
 project:
   type: website
+  render:
+    - index.qmd
+    - a-propos.qmd
+  resources:
+    - js/
 
 website:
-  title: "toto"
+  title: "Prix de l'immobilier en petite couronne"
   navbar:
     left:
       - href: index.qmd
-        text: Home
+        text: Accueil
+      - href: a-propos.qmd
+        text: À propos
 
 format:
   html:
+    lang: fr
+    # Thème clair ou sombre selon la préférence du navigateur (prefers-color-scheme),
+    # avec un interrupteur dans la barre de navigation
     theme:
-      - cosmo
-      - brand
-    css: styles/styles.css
-    toc: true
-
-
-
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    css: styles.css
+    toc: false

@@ -1,22 +1,23 @@
+#| filename: "deployment/deployment.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dvf-deployment
+  name: titanic-deployment
   labels:
-    app: dvf
+    app: titanic
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dvf
+      app: titanic
   template:
     metadata:
       labels:
-        app: dvf
+        app: titanic
     spec:
       containers:
-      - name: dvf
-        image: compte_dockerhub/application:v0.0.1
+      - name: titanic
+        image: compte_github/application:v0.0.2
         ports:
         - containerPort: 8000
         env:

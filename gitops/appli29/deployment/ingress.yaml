@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dvf-ingress
+  name: titanic-ingress
   annotations:
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "*"
@@ -12,15 +12,15 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - api-dvf-test.lab.sspcloud.fr
+    - nom-appli.lab.sspcloud.fr
   rules:
-  - host: api-dvf-test.lab.sspcloud.fr
+  - host: nom-appli.lab.sspcloud.fr
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: dvf-service
+            name: titanic-service
             port:
               number: 80
