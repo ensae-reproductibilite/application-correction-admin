@@ -42,10 +42,10 @@ html:has(.carte) { overflow: hidden; }
   top: var(--hauteur-navbar, 56px);
   right: 0;
   bottom: 0;
-  width: 500px;
+  width: 520px;
   max-width: 100vw;
   z-index: 10;
-  padding: 12px 16px;
+  padding: 20px 24px;
   overflow-y: auto;
   background: var(--bs-body-bg);
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.25);
@@ -57,8 +57,19 @@ html:has(.carte) { overflow: hidden; }
 .bandeau .erreur { color: #bd0026; }
 
 /* Infobulles de MapLibre */
-/* Le fond de carte reste clair : texte foncé quel que soit le thème */
-.maplibregl-popup-content { font-size: 0.85em; padding: 6px 10px; color: #222; }
+/* Couleurs issues du thème Bootstrap (clair ou sombre), y compris la pointe */
+.maplibregl-popup-content {
+  font-size: 0.85em; padding: 6px 10px;
+  background: var(--bs-body-bg); color: var(--bs-body-color);
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--bs-body-bg); }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--bs-body-bg); }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--bs-body-bg); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--bs-body-bg); }
 
 /* Tableau des ventes : compact, sans case "tout sélectionner" */
 .bandeau table { font-size: 0.8em; }
@@ -67,14 +78,27 @@ html:has(.carte) { overflow: hidden; }
 
 /* Titres des histogrammes du bandeau */
 .bandeau h2 { font-size: 0.95em; font-weight: 600; margin: 0; }
-/* Séparation entre le comparatif estimation / vente et les histogrammes */
+/* Légende commune des histogrammes */
 .legende-histos {
   font-size: 0.85rem;
-  margin: 1.5rem 0 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--bs-border-color);
+  margin: 0 0 0.75rem;
 }
 
 /* Graphiques Observable Plot : fond transparent pour suivre le thème clair ou sombre */
 .bandeau { --plot-background: transparent; }
 .bandeau svg, .bandeau figure { background: transparent !important; }
+
+/* Bandeau aéré : espace entre les blocs, titres sobres, texte plus interligné */
+.bandeau .cell { margin-bottom: 1.25rem; }
+.bandeau .titre-bloc {
+  margin: 1.75rem 0 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+}
+.bandeau .cell form { margin-bottom: 0.6rem; }
+.bandeau .cell p { line-height: 1.8; margin-bottom: 0.5rem; }

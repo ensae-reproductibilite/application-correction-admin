@@ -40,6 +40,76 @@ function emprise(geometries) {
   return [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]];
 }
 
+// --- Thème sombre ---------------------------------------------------------------
+// Il n'existe pas de Plan IGN sombre : on dérive un style sombre du style gris en
+// inversant la luminosité de toutes ses couleurs (teinte et transparence conservées).
+
+// Convertit une couleur CSS (#rgb, #rrggbb, rgb(a), hsl(a)) en [h, s, l, alpha] (h en degrés, s et l entre 0 et 1)
+function versHsl(couleur) {
+  let r, g, b, a = 1, m;
+  if ((m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(couleur))) {
+    const hex = m[1].length === 3 ? [...m[1]].map((c) => c + c).join("") : m[1];
+    [r, g, b] = [0, 2, 4].map((k) => parseInt(hex.slice(k, k + 2), 16) / 255);
+  } else if ((m = /^rgba?\(([^)]+)\)$/i.exec(couleur))) {
+    const v = m[1].split(",").map(parseFloat);
+    [r, g, b] = v.slice(0, 3).map((x) => x / 255);
+    if (v.length > 3) a = v[3];
+  } else if ((m = /^hsla?\(([^)]+)\)$/i.exec(couleur))) {
+    const v = m[1].split(",").map(parseFloat);
+    return [v[0], v[1] / 100, v[2] / 100, v.length > 3 ? v[3] : 1];
+  } else {
+    return null;
+  }
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d === 0) return [0, 0, l, a];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s, l, a];
+}
+
+// Inverse la luminosité (compressée pour ne pas virer au noir pur) ; toute chaîne qui n'est pas une couleur est rendue telle quelle
+export function assombrir(couleur) {
+  const hsl = versHsl(couleur);
+  if (!hsl) return couleur;
+  const [h, s, l, a] = hsl;
+  return `hsla(${h.toFixed(0)}, ${(s * 100).toFixed(0)}%, ${((0.12 + (1 - l) * 0.75) * 100).toFixed(1)}%, ${a})`;
+}
+
+// Applique assombrir à toutes les couleurs d'une valeur de style : chaîne, expression
+// (tableaux imbriqués) ou fonction historique ({stops: [[zoom, couleur], ...]})
+function assombrirValeur(valeur) {
+  if (typeof valeur === "string") return assombrir(valeur);
+  if (Array.isArray(valeur)) return valeur.map(assombrirValeur);
+  if (valeur && typeof valeur === "object") {
+    return Object.fromEntries(Object.entries(valeur).map(([k, v]) => [k, assombrirValeur(v)]));
+  }
+  return valeur;
+}
+
+// Couleurs de nos propres couches selon le thème
+function couleursPropres(sombre) {
+  return sombre
+    ? { ligne: "#8aa3bd", selection: "#7db8ff", texte: "#8ec1ff", halo: "#10151c", parcelle: "#aab4c0", choisie: "#ffffff" }
+    : { ligne: "#5b7a99", selection: "#1a5fb4", texte: "#1a5fb4", halo: "#ffffff", parcelle: "#666666", choisie: "#000000" };
+}
+
+// Bascule le fond de carte et nos couches entre thème clair et sombre, sans recharger
+// le style (la sélection et les couleurs des parcelles sont conservées)
+export function appliquerTheme(carte, sombre) {
+  for (const { id, couleurs } of carte.fondOriginal) {
+    for (const [propriete, valeur] of Object.entries(couleurs)) {
+      carte.setPaintProperty(id, propriete, sombre ? assombrirValeur(valeur) : valeur);
+    }
+  }
+  const c = couleursPropres(sombre);
+  const etatSel = ["boolean", ["feature-state", "selection"], false];
+  carte.setPaintProperty("sections-line", "line-color", ["case", etatSel, c.selection, c.ligne]);
+  carte.setPaintProperty("sections-label", "text-color", c.texte);
+  carte.setPaintProperty("sections-label", "text-halo-color", c.halo);
+  carte.setPaintProperty("parcelles-line", "line-color", c.parcelle);
+  carte.setPaintProperty("parcelle-choisie", "line-color", c.choisie);
+}
+
 // Crée la carte dans `conteneur`.
 // Callbacks : surSection(idSection), surParcelle(idParcelle).
 export async function creerCarte(conteneur, { surSection, surParcelle }) {
@@ -53,6 +123,14 @@ export async function creerCarte(conteneur, { surSection, surParcelle }) {
   carte.etat = { survol: null, section: null };
   ajouterLegende(conteneur);
   await new Promise((resolve) => carte.on("load", resolve));
+
+  // Couleurs d'origine du fond de carte, conservées pour pouvoir basculer en thème sombre
+  carte.fondOriginal = carte.getStyle().layers.map((couche) => ({
+    id: couche.id,
+    couleurs: Object.fromEntries(
+      Object.entries(couche.paint ?? {}).filter(([propriete]) => propriete.includes("color"))
+    ),
+  }));
 
   // Tuiles vectorielles du cadastre ; promoteId fait de la propriété `id` l'identifiant
   // des objets, ce qui permet d'y attacher un état (survol, sélection, prix)
@@ -129,6 +207,7 @@ export async function creerCarte(conteneur, { surSection, surParcelle }) {
     if (section) choisirSection(carte, section.id, surSection);
   });
   carte.surSection = surSection;
+  appliquerTheme(carte, document.body.classList.contains("quarto-dark"));
   return carte;
 }
 
