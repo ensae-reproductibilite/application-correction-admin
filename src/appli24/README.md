@@ -72,7 +72,7 @@ le prix d'une vente choisie (`index.qmd` et modules `js/`, page `a-propos.qmd`).
 ## Site web
 
 Le projet est présenté par un site Quarto (`index.qmd`, `_quarto.yml`). Le
-workflow `.github/workflows/publish.yaml` le construit et le publie sur GitHub
+workflow `.github/workflows/publish.yml` le construit et le publie sur GitHub
 Pages, à l'adresse https://compte_github.github.io/application (à remplacer par
 votre propre URL).
 
