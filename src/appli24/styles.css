@@ -109,3 +109,12 @@ body.quarto-dark .maplibregl-ctrl-attrib { background: var(--bs-body-bg); color:
 body.quarto-dark .maplibregl-ctrl-attrib a { color: var(--bs-body-color); }
 body.quarto-dark .maplibregl-ctrl-group button + button { border-top-color: var(--bs-border-color); }
 body.quarto-dark .maplibregl-ctrl-icon { filter: invert(1); }
+
+/* Barre de navigation : fond noir (défini dans _quarto.yml) et fin trait de couleur
+   reprenant l'échelle des prix de la carte */
+#quarto-header .navbar {
+  border-bottom: 3px solid #f03b20;
+  box-shadow: none;
+}
+#quarto-header .navbar .nav-link.active { color: #fd8d3c; }
+#quarto-header .navbar .nav-link:hover { color: #ffffff; }

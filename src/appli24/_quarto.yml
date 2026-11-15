@@ -9,6 +9,9 @@ project:
 website:
   title: "Prix de l'immobilier en petite couronne"
   navbar:
+    # Barre noire dans les deux thèmes, pour ne pas jurer avec le fond de carte
+    background: "#111111"
+    foreground: "#e8e8e8"
     left:
       - href: index.qmd
         text: Accueil
