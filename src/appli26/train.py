@@ -209,6 +209,7 @@ with mlflow.start_run():
     for param, value in best_params.items():
         mlflow.log_param(param, value)
 
+
     # Sauvegarde du meilleur pipeline complet
     sio.dump(best_model, "model.skops")
 
@@ -226,7 +227,7 @@ with mlflow.start_run():
     mlflow.log_metric("accuracy", test_score)
 
     matrix = confusion_matrix(y_test, best_model.predict(X_test))
-
+    
     logging.info("Matrice de confusion (test):")
     logging.info(matrix)
 
@@ -239,4 +240,4 @@ with mlflow.start_run():
     mlflow.log_artifact(matrix_path)
 
     # Log model
-    mlflow.sklearn.log_model(best_model, "model")
+    mlflow.sklearn.log_model(pipe, "model")
