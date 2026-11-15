@@ -1,8 +1,10 @@
-/* Page d'accueil : la carte occupe tout l'écran sous la barre de navigation */
+/* Page d'accueil : la carte occupe tout l'écran sous la barre de navigation,
+   dont la hauteur (variable selon le thème clair ou sombre) est mesurée dans index.qmd */
 html:has(.carte) { overflow: hidden; }
+.cell:has(.carte) { padding-top: 0 !important; } /* marge ajoutée par Quarto autour des cellules */
 .carte {
   position: relative;
-  height: calc(100vh - 56px);
+  height: calc(100vh - var(--hauteur-navbar, 56px));
   width: 100%;
 }
 
@@ -13,7 +15,7 @@ html:has(.carte) { overflow: hidden; }
   left: 10px;
   z-index: 1;
   padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--bs-body-bg) 90%, transparent);
   border-radius: 4px;
   font-size: 0.8em;
 }
@@ -25,19 +27,19 @@ html:has(.carte) { overflow: hidden; }
   position: fixed;
   z-index: 5;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--bs-body-bg) 92%, transparent);
   border-radius: 4px;
   font-size: 0.85em;
 }
 .indicateur { bottom: 24px; left: 50%; transform: translateX(-50%); }
 .indicateur p, .recherche form { margin: 0; }
-.recherche { top: 66px; left: 10px; }
+.recherche { top: calc(var(--hauteur-navbar, 56px) + 10px); left: 10px; }
 
 /* Bandeau des ventes : à droite, masqué tant qu'aucune parcelle n'est choisie */
 .bandeau {
   display: none;
   position: fixed;
-  top: 56px;
+  top: var(--hauteur-navbar, 56px);
   right: 0;
   bottom: 0;
   width: 500px;
@@ -45,7 +47,7 @@ html:has(.carte) { overflow: hidden; }
   z-index: 10;
   padding: 12px 16px;
   overflow-y: auto;
-  background: #fff;
+  background: var(--bs-body-bg);
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.25);
   font-size: 0.9em;
 }
@@ -55,7 +57,8 @@ html:has(.carte) { overflow: hidden; }
 .bandeau .erreur { color: #bd0026; }
 
 /* Infobulles de MapLibre */
-.maplibregl-popup-content { font-size: 0.85em; padding: 6px 10px; }
+/* Le fond de carte reste clair : texte foncé quel que soit le thème */
+.maplibregl-popup-content { font-size: 0.85em; padding: 6px 10px; color: #222; }
 
 /* Tableau des ventes : compact, sans case "tout sélectionner" */
 .bandeau table { font-size: 0.8em; }
@@ -64,4 +67,14 @@ html:has(.carte) { overflow: hidden; }
 
 /* Titres des histogrammes du bandeau */
 .bandeau h2 { font-size: 0.95em; font-weight: 600; margin: 0; }
-.legende-histos { font-size: 0.85rem; margin: 0.5rem 0 0; }
+/* Séparation entre le comparatif estimation / vente et les histogrammes */
+.legende-histos {
+  font-size: 0.85rem;
+  margin: 1.5rem 0 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+/* Graphiques Observable Plot : fond transparent pour suivre le thème clair ou sombre */
+.bandeau { --plot-background: transparent; }
+.bandeau svg, .bandeau figure { background: transparent !important; }

@@ -18,6 +18,11 @@ website:
 format:
   html:
     lang: fr
-    theme: cosmo
+    # Thème clair ou sombre selon la préférence du navigateur (prefers-color-scheme),
+    # avec un interrupteur dans la barre de navigation
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
     css: styles.css
     toc: false

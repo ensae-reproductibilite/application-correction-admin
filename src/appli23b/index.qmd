@@ -23,6 +23,20 @@ mutable sectionChoisie = null
 mutable parcelleChoisie = null
 ```
 
+```{ojs}
+//| output: false
+// La hauteur de la barre de navigation dépend du thème (clair ou sombre) :
+// on la mesure pour que la carte et le bandeau occupent exactement le reste de l'écran
+{
+  const mesurer = () => document.documentElement.style.setProperty(
+    "--hauteur-navbar", `${document.querySelector("#quarto-header").offsetHeight}px`);
+  mesurer();
+  const observateur = new ResizeObserver(mesurer);
+  observateur.observe(document.querySelector("#quarto-header"));
+  invalidation.then(() => observateur.disconnect());
+}
+```
+
 ::: {.indicateur}
 ```{ojs}
 {
