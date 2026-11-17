@@ -6,18 +6,24 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "duckdb>=2.0.0",
-    "fastapi>=0.128.7",
-    "mlflow==3.10.0",
-    "pandas<3",
-    "python-dotenv>=1.2.1",
-    "scikit-learn>=1.8.0",
-    "skops>=0.13.0",
-    "uvicorn>=0.40.0",
+    "fastapi>=0.162.0",
+    "geopandas>=1.2.0",
+    "lightgbm>=4.7.0",
+    "matplotlib>=3.11.2",
+    "mlflow>=3.18.0",
+    "numpy>=2.5.4",
+    "pandas>=3.0.6",
+    "python-dotenv>=1.2.4",
+    "requests>=2.34.2",
+    "scikit-learn>=1.9.1",
+    "seaborn>=0.13.2",
+    "skops>=0.16.0",
+    "skore>=0.28.0",
+    "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pylint>=4.0.5",
     "ruff>=0.17.1",
 ]
 
