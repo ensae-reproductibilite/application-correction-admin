@@ -64,7 +64,7 @@ l'API sur le port 8000 (écoute sur l'adresse `0.0.0.0`).
 L'API est déployée sur Kubernetes avec ArgoCD. Les manifestes de déploiement
 ne sont pas dans ce dépôt mais dans le dépôt GitOps `application-deployment`,
 que ArgoCD surveille. L'API est disponible à l'adresse
-https://api-dvf-test.lab.sspcloud.fr (à remplacer par votre propre URL). La page d'accueil est une carte (fond IGN, sections puis
+https://<APP_NAME>.lab.sspcloud.fr (à remplacer par votre propre URL). La page d'accueil est une carte (fond IGN, sections puis
 parcelles cadastrales colorées selon le prix médian au m²) : les ventes DVF sont
 lues dans le navigateur avec DuckDB-WASM, et l'API n'est appelée que pour estimer
 le prix d'une vente choisie (`index.qmd` et modules `js/`, page `a-propos.qmd`).
@@ -73,7 +73,7 @@ le prix d'une vente choisie (`index.qmd` et modules `js/`, page `a-propos.qmd`).
 
 Le projet est présenté par un site Quarto (`index.qmd`, `_quarto.yml`). Le
 workflow `.github/workflows/publish.yml` le construit et le publie sur GitHub
-Pages, à l'adresse https://compte_github.github.io/application (à remplacer par
+Pages, à l'adresse https://<GITHUB_USERNAME>.github.io/application (à remplacer par
 votre propre URL).
 
 Les ventes DVF sont lues par département dans des fichiers parquet partitionnés,

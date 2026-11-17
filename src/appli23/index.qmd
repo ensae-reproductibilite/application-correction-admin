@@ -30,7 +30,7 @@ md`**Prix estimé** : ${prediction.prix_estime.toLocaleString("fr-FR")} € (${p
 ```
 
 ```{ojs}
-apiRoot = "https://api-dvf-test.lab.sspcloud.fr"
+apiRoot = "https://<APP_NAME>.lab.sspcloud.fr"
 ```
 
 ```{ojs}
@@ -44,5 +44,5 @@ prediction = d3.json(prediction_url)
 
 ## Documentation de l'API
 
-Retrouver l'API sur [https://api-dvf-test.lab.sspcloud.fr/docs](https://api-dvf-test.lab.sspcloud.fr/docs) pour jouer avec
+Retrouver l'API sur [https://<APP_NAME>.lab.sspcloud.fr/docs](https://<APP_NAME>.lab.sspcloud.fr/docs) pour jouer avec
 d'autres exemples.

@@ -64,13 +64,13 @@ l'API sur le port 8000 (écoute sur l'adresse `0.0.0.0`).
 L'API est déployée sur Kubernetes avec ArgoCD. Les manifestes de déploiement
 ne sont pas dans ce dépôt mais dans le dépôt GitOps `application-deployment`,
 que ArgoCD surveille. L'API est disponible à l'adresse
-https://api-dvf-test.lab.sspcloud.fr (à remplacer par votre propre URL).
+https://<APP_NAME>.lab.sspcloud.fr (à remplacer par votre propre URL).
 
 ## Site web
 
 Le projet est présenté par un site Quarto (`index.qmd`, `_quarto.yml`). Le
 workflow `.github/workflows/publish.yml` le construit et le publie sur GitHub
-Pages, à l'adresse https://compte_github.github.io/application (à remplacer par
+Pages, à l'adresse https://<GITHUB_USERNAME>.github.io/application (à remplacer par
 votre propre URL).
 
 Pour le prévisualiser en local, après avoir installé
