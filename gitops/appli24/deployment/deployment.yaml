@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: dvf
-        image: compte_dockerhub/application:v0.0.1
+        image: <DOCKERHUB_USERNAME>/application:v0.0.1
         ports:
         - containerPort: 8000
         env:

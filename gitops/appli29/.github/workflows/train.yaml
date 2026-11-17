@@ -24,9 +24,9 @@ jobs:
           - { n_trees: 20, max_features: "log2" }
           - { n_trees: 50, max_features: "sqrt" }
     container:
-      image: compte_github/application:v0.0.4
+      image: <DOCKERHUB_USERNAME>/application:v0.0.4
     env:
-      MLFLOW_TRACKING_URI: "https://user-${SSPCLOUD_USERNAME}-mlflow.user.lab.sspcloud.fr/"
+      MLFLOW_TRACKING_URI: "https://user-<SSPCLOUD_USERNAME>-mlflow.user.lab.sspcloud.fr/"
       MLFLOW_EXPERIMENT_NAME: "titanicml"
       MLFLOW_TRACKING_PASSWORD: "${{ secrets.MLFLOW_TRACKING_PASSWORD }}"
       AWS_DEFAULT_REGION: "us-east-1"

@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: titanic-training-workflow-
-  namespace: user-${SSPCLOUD_USERNAME}
+  namespace: user-<SSPCLOUD_USERNAME>
 spec:
   entrypoint: main
   serviceAccountName: workflow
@@ -10,7 +10,7 @@ spec:
     parameters:
       # The MLflow tracking server is responsible to log the hyper-parameter and model metrics.
       - name: mlflow-tracking-uri
-        value: https://user-${SSPCLOUD_USERNAME}-mlflow.user.lab.sspcloud.fr/
+        value: https://user-<SSPCLOUD_USERNAME>-mlflow.user.lab.sspcloud.fr/
       - name: mlflow-experiment-name
         value: titanicml
       - name: model-training-conf-list
@@ -58,7 +58,7 @@ spec:
           - name: n_trees
           - name: max_features
       container:
-        image: compte_github/application:v0.0.4
+        image: <DOCKERHUB_USERNAME>/application:v0.0.4
         imagePullPolicy: Always
         command: [sh, -c]
         args: [

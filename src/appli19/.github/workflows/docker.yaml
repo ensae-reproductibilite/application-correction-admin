@@ -28,4 +28,4 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: compte_dockerhub/application:latest
+          tags: <DOCKERHUB_USERNAME>/application:latest
