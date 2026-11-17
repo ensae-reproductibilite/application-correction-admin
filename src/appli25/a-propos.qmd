@@ -28,4 +28,4 @@ __Sur le serveur (API)__
 
 ## Documentation de l'API
 
-Retrouver l'API sur [https://api-dvf-test.lab.sspcloud.fr/docs](https://api-dvf-test.lab.sspcloud.fr/docs) pour jouer avec d'autres exemples.
+Retrouver l'API sur [https://<APP_NAME>.lab.sspcloud.fr/docs](https://<APP_NAME>.lab.sspcloud.fr/docs) pour jouer avec d'autres exemples.

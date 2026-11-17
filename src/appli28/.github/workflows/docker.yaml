@@ -24,7 +24,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: compte_github/application
+          images: <DOCKERHUB_USERNAME>/application
 
       -
         name: Login to Docker Hub

@@ -10,7 +10,7 @@ import {chargerVentes, nombreVentes, medianeParParcelleDeSection, ventesDeParcel
 import {creerCarte, appliquerTheme, colorerParcelles, deselectionnerParcelle, placerMarqueur, allerA} from "./js/carte.js"
 import {pointDepuisAdresse, estimerPrix} from "./js/prediction.js"
 import {tableVentes, blocEstimation, histogrammesPrix} from "./js/graphiques.js"
-apiRoot = "https://api-dvf-test.lab.sspcloud.fr"
+apiRoot = "https://<APP_NAME>.lab.sspcloud.fr"
 ```
 
 ```{ojs}

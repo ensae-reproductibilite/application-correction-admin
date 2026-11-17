@@ -70,7 +70,7 @@ kubectl apply -f deployment/
 ```
 
 L'API est alors accessible à l'URL indiquée dans `deployment/ingress.yaml`
-(remplacer `api-dvf-test.lab.sspcloud.fr` et l'image `compte_dockerhub` par les vôtres).
+(remplacer `<APP_NAME>` et `<DOCKERHUB_USERNAME>` par les vôtres).
 
 ## Contribuer
 

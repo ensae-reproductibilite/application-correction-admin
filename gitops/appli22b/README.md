@@ -6,7 +6,7 @@ Dépôt GitOps de l'API de prix au m² des logements (données DVF).
 - `application.yaml` est l'application ArgoCD qui surveille le dossier `deployment/` sur la branche `main`.
 
 Pour déployer une nouvelle version, changer le tag de l'image dans `deployment/deployment.yaml`
-(par exemple `compte_dockerhub/application:v0.0.2`), puis pousser le changement sur `main` :
+(par exemple `<DOCKERHUB_USERNAME>/application:v0.0.2`), puis pousser le changement sur `main` :
 ArgoCD applique alors les manifestes.
 
 L'API lit son jeton dans le secret `api-jeton`, qui doit exister dans le namespace avant le déploiement :
