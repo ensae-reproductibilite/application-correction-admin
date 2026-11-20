@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: titanic-ingress
+  name: dvf-ingress
   annotations:
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "*"
@@ -21,6 +21,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: titanic-service
+            name: dvf-service
             port:
               number: 80
