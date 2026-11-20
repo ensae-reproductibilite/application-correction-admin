@@ -1,32 +1,35 @@
 """
-Prediction de la survie d'un individu sur le Titanic
-(avec GridSearchCV + cross-validation)
+Predict the price per m² of homes sold in Paris and its inner suburbs
+from DVF transactions enriched with Filosofi socio-economic data,
+with hyperparameters chosen by cross-validation
+
+The training runs are tracked with MLflow.
 """
 
-import os
 import argparse
 import logging
-from dotenv import load_dotenv
-
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
-import skops.io as sio
-import mlflow
+import os
+from pathlib import Path
 
 import duckdb
+import geopandas as gpd
+import mlflow
 import pandas as pd
+import seaborn as sns
+import skops.io as sio
+from dotenv import load_dotenv
+from sklearn.metrics import root_mean_squared_error
+from sklearn.model_selection import train_test_split
 
-from src.validation.check import (
-    check_name_formatting,
+from src.data.build_features import build_features
+from src.data.check import (
+    check_code_commune_formatting,
     check_missing_values,
-    check_data_leakage,
+    check_unseen_categories,
 )
+from src.data.import_data import add_filosofi_carreaux, add_filosofi_communes
+from src.models.evaluation import evaluate_with_skore, rmse_by_commune
+from src.models.model import create_pipeline, search_hyperparameters
 
 load_dotenv()
 con = duckdb.connect(database=":memory:")
@@ -35,208 +38,260 @@ logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
     style="{",
     datefmt="%Y-%m-%d %H:%M",
-    level=logging.DEBUG,
+    level=logging.INFO,
     handlers=[logging.FileHandler("recording.log"), logging.StreamHandler()],
 )
 
-# PARAMETERS ---------------------------------------
+# DEBUG only for our own messages: globally, libraries such as matplotlib
+# would flood the log
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-NUMERIC_FEATURES = ["Age", "Fare"]
-CATEGORICAL_FEATURES = ["Embarked", "Sex"]
-URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw/data.parquet"
+# Hyperparameter grid explored by cross-validation. The names follow the
+# nesting of the model: TransformedTargetRegressor > Pipeline > LGBMRegressor
+PARAM_GRID = {
+    "regressor__regressor__learning_rate": [0.03, 0.1],
+    "regressor__regressor__num_leaves": [31, 63],
+}
+NUMERIC_FEATURES = [
+    "log_surface",
+    "log_distance_eiffel",
+    "nombre_pieces_principales",
+    "nombre_lots",
+    "log_surface_terrain",
+    "ratio_carrez",
+    "nbre_menages",
+    "tx_pauvrete",
+    "nv_vie_moyen",
+    "part_proprietaires",
+    "part_logements_sociaux",
+    "part_logements_avant_1945",
+    "surface_moyenne_logements",
+    "NIVVIE_MEDIAN",
+    "TAUX_PAUVRETE",
+]
+CATEGORICAL_FEATURES = ["code_commune", "type_local"]
+DEPARTEMENTS_PARIS = ["75", "92", "93", "94"]
 
 jeton_api = os.environ["JETON_API"]
 
-# ENVIRONMENT CONFIGURATION ---------------------------
+URL_RAW = "https://minio.lab.sspcloud.fr/lgaliana/ensae-reproductibilite/data/raw"
+URL_DVF = f"{URL_RAW}/dvf.parquet"
+URL_FILOSOFI = f"{URL_RAW}/filosofi_carreaux_200m_2021.parquet"
+DERIVED_DATA_LOCATION = Path("data/derived")
+
+
+# ENVIRONMENT CONFIGURATION ---------------------------------------
 
 parser = argparse.ArgumentParser(
-    description="Paramètres du random forest + grid search"
+    description="Paramètres du modèle LightGBM et de la validation croisée"
 )
 parser.add_argument(
-    "--experiment_name", type=str, default="titanicml", help="MLFlow experiment name"
+    "--experiment_name", type=str, default="dvf", help="Nom de l'expérimentation MLflow"
 )
+parser.add_argument("--n_trees", type=int, default=1500, help="Nombre d'arbres")
 parser.add_argument(
-    "--n_trees",
-    type=int,
-    default=20,
-    help="Valeur par défaut pour n_estimators dans la grille",
-)
-parser.add_argument(
-    "--cv", type=int, default=5, help="Nombre de folds pour la cross-validation"
+    "--cv", type=int, default=3, help="Nombre de plis de la validation croisée"
 )
 args = parser.parse_args()
 
-n_trees_default = args.n_trees
+n_trees = args.n_trees
 cv_folds = args.cv
 
-logging.debug(f"Valeur de l'argument n_trees: {n_trees_default}")
-logging.debug(f"Valeur de l'argument cv: {cv_folds}")
+logger.debug(f"Valeur de l'argument n_trees: {n_trees}")
+logger.debug(f"Valeur de l'argument cv: {cv_folds}")
 
 
-# LOGGING IN MLFLOW -----------------
+# MLFLOW CONFIGURATION ---------------------------------------
 
 mlflow_server = os.getenv("MLFLOW_TRACKING_URI")
-
-logging.debug(f"Saving experiment in {mlflow_server}")
+logger.info(f"Expérimentations enregistrées dans {mlflow_server}")
 
 mlflow.set_tracking_uri(mlflow_server)
 mlflow.set_experiment(args.experiment_name)
 
 
-# QUALITY DIAGNOSTICS  ---------------------------------------
+# DATA IMPORT ---------------------------------------
 
-logging.debug(f"\n{80 * '-'}\nStarting data validation step\n{80 * '-'}")
+logger.debug(f"\n{80 * '-'}\nLecture des données\n{80 * '-'}")
 
-query_definition = (
-    f"CREATE TEMP TABLE titanic AS (SELECT * FROM read_parquet('{URL_RAW}'))"
-)
+# Filtering in the query avoids loading the whole of France. The geometry is
+# rebuilt later from longitude and latitude.
+departements = ", ".join(f"'{dep}'" for dep in DEPARTEMENTS_PARIS)
+query_definition = f"""
+    CREATE TEMP TABLE dvf AS
+    SELECT * EXCLUDE (geometry, __index_level_0__)
+    FROM read_parquet('{URL_DVF}')
+    WHERE code_departement IN ({departements})
+"""
 con.sql(query_definition)
 
-column_names = con.sql("SELECT column_name FROM (DESCRIBE titanic)").to_df()[
-    "column_name"
-]
 
-check_name_formatting(connection=con)
+# QUALITY DIAGNOSTICS ---------------------------------------
+
+logger.debug(f"\n{80 * '-'}\nValidation des données\n{80 * '-'}")
+
+column_names = con.sql("SELECT column_name FROM (DESCRIBE dvf)").to_df()["column_name"]
+
+check_code_commune_formatting(connection=con)
 
 for var in column_names:
     check_missing_values(connection=con, variable=var)
 
-# FEATURE ENGINEERING    -----------------------------------------
 
-logging.debug(f"\n{80 * '-'}\nStarting feature engineering phase\n{80 * '-'}")
+# SCOPE RESTRICTION ---------------------------------------
 
-titanic = con.sql(
-    f"SELECT Survived, {', '.join(CATEGORICAL_FEATURES + NUMERIC_FEATURES)} FROM titanic"
-).to_df()
+logger.info("Restriction aux transactions de moins d'un million d'euros")
 
-y = titanic["Survived"]
-X = titanic.drop("Survived", axis="columns")
-
-# Stratify: utile sur Titanic car classes pas parfaitement équilibrées
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.1, random_state=42, stratify=y
+dvf = con.sql("SELECT * FROM dvf WHERE valeur_fonciere < 1e6").to_df()
+dvf = gpd.GeoDataFrame(
+    dvf,
+    geometry=gpd.points_from_xy(dvf["longitude"], dvf["latitude"]),
+    crs="EPSG:4326",
 )
 
+
+# ADDITIONAL DATA ---------------------------------------
+
+dvf = add_filosofi_carreaux(dvf, connection=con, url_filosofi=URL_FILOSOFI)
+dvf = add_filosofi_communes(dvf, jeton_api)
+
+logger.debug(f"Aperçu des données enrichies:\n{dvf.head(5)}")
+
+
+# DESCRIPTIVE STATISTICS ---------------------------------------
+
+logger.debug(f"\n{80 * '-'}\nStatistiques descriptives\n{80 * '-'}")
+
+sns.histplot(data=dvf, x="valeur_fonciere")
+sns.histplot(data=dvf, x="valeur_fonciere", log_scale=True)
+
+grid = sns.scatterplot(data=dvf, x="surface_reelle_bati", y="valeur_fonciere")
+grid.set(xscale="log", yscale="log")
+
+
+# FEATURE ENGINEERING ---------------------------------------
+
+logger.debug(f"\n{80 * '-'}\nFeature engineering\n{80 * '-'}")
+
+dvf = build_features(dvf)
+
+# Missing features are imputed in the pipeline: only rows without a target
+# are dropped.
+dvf_start_data = dvf.dropna(subset=["prix_m2"])
+
+
+# PRICE PER M² BY MUNICIPALITY ---------------------------------------
+
+prix_m2_commune = (
+    dvf.groupby(["code_commune", "nom_commune"])["prix_m2"].mean().sort_values()
+)
+
+logger.info(f"Communes au prix au m2 le plus bas :\n{prix_m2_commune.head(5)}")
+logger.info(f"Communes au prix au m2 le plus élevé :\n{prix_m2_commune.tail(5)}")
+
+
+# TRAIN/TEST SPLIT ---------------------------------------
+
+features = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+X = dvf_start_data[features]
+y = dvf_start_data["prix_m2"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=0)
+
+DERIVED_DATA_LOCATION.mkdir(parents=True, exist_ok=True)
+pd.concat([X_train, y_train], axis=1).to_csv(DERIVED_DATA_LOCATION / "train.csv")
+pd.concat([X_test, y_test], axis=1).to_csv(DERIVED_DATA_LOCATION / "test.csv")
+
+
+# SPLIT VALIDATION ---------------------------------------
 
 for string_var in CATEGORICAL_FEATURES:
-    check_data_leakage(X_train, X_test, string_var)
+    check_unseen_categories(X_train, X_test, string_var)
 
-# MODEL DEFINITION -----------------------------------------
-
-numeric_transformer = Pipeline(
-    steps=[
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", MinMaxScaler()),
-    ]
-)
-
-categorical_transformer = Pipeline(
-    steps=[
-        ("imputer", SimpleImputer(strategy="most_frequent")),
-        ("onehot", OneHotEncoder(handle_unknown="ignore")),
-    ]
-)
-
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("Preprocessing numerical", numeric_transformer, NUMERIC_FEATURES),
-        ("Preprocessing categorical", categorical_transformer, CATEGORICAL_FEATURES),
-    ]
-)
-
-pipe = Pipeline(
-    steps=[
-        ("preprocessor", preprocessor),
-        ("classifier", RandomForestClassifier(random_state=42)),
-    ]
-)
-
-# GRID SEARCH + CV --------------------------------------------
-
-# Grille d'hyperparamètres (tu peux l'élargir/réduire selon le temps de calcul)
-param_grid = {
-    "classifier__n_estimators": [
-        n_trees_default,
-    ],
-    "classifier__max_depth": [3, 5],
-    "classifier__max_features": ["sqrt", "log2"],
-    "classifier__min_samples_split": [2, 5]
-}
-
-
-train_data = pd.concat([X_train, y_train], axis=1)
 
 with mlflow.start_run():
+    # HYPERPARAMETER SEARCH ---------------------------------------
 
-    logging.debug(f"\n{80 * '-'}\nLogging input in MLFlow\n{80 * '-'}")
-
-    mlflow.log_input(
-        mlflow.data.from_pandas(titanic),
-        context="raw",
+    logger.debug(
+        f"\n{80 * '-'}\nRecherche des hyperparamètres par validation croisée\n{80 * '-'}"
     )
 
     mlflow.log_input(
-        mlflow.data.from_pandas(train_data),
-        context="raw",
+        mlflow.data.from_pandas(pd.concat([X_train, y_train], axis=1), name="train"),
+        context="training",
+    )
+    mlflow.log_input(
+        mlflow.data.from_pandas(pd.concat([X_test, y_test], axis=1), name="test"),
+        context="test",
+    )
+    mlflow.log_params({"n_trees": n_trees, "cv_folds": cv_folds})
+
+    pipe = create_pipeline(NUMERIC_FEATURES, CATEGORICAL_FEATURES, n_trees=n_trees)
+    search = search_hyperparameters(
+        pipe, PARAM_GRID, X_train, y_train, cv_folds=cv_folds
     )
 
-    mlflow.log_param("n_trees", n_trees_default)
+    resultats_cv = pd.DataFrame(search.cv_results_)
+    resultats_cv["rmse_cv"] = -resultats_cv["mean_test_score"]
+    logger.info(
+        "RMSE moyenne en validation croisée par combinaison d'hyperparamètres :\n"
+        f"{resultats_cv[['params', 'rmse_cv']]}"
+    )
+    logger.info(f"Meilleurs hyperparamètres : {search.best_params_}")
 
-    cv = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=42)
+    mlflow.log_params(
+        {
+            name.removeprefix("regressor__regressor__"): value
+            for name, value in search.best_params_.items()
+        }
+    )
+    mlflow.log_metric("rmse_cv", -search.best_score_)
 
-    search = GridSearchCV(
-        estimator=pipe,
-        param_grid=param_grid,
-        scoring="accuracy",
-        cv=cv,
-        verbose=1,
-        refit=True,
+    # GridSearchCV refits the best combination on the whole training set
+    pipe = search.best_estimator_
+
+    # EVALUATION ---------------------------------------
+
+    logger.debug(f"\n{80 * '-'}\nÉvaluation du meilleur modèle\n{80 * '-'}")
+
+    rmse_train = root_mean_squared_error(y_train, pipe.predict(X_train))
+    rmse_test = root_mean_squared_error(y_test, pipe.predict(X_test))
+    logger.info(f"RMSE sur l'apprentissage : {rmse_train:,.0f} €/m²")
+    logger.info(f"RMSE sur le test : {rmse_test:,.0f} €/m²")
+    mlflow.log_metrics({"rmse_train": rmse_train, "rmse_test": rmse_test})
+
+    cog = dvf_start_data[["code_commune", "nom_commune"]].drop_duplicates()
+    rmse_commune = rmse_by_commune(pipe, X_test, y_test, cog)
+
+    logger.info(f"Communes avec la RMSE la plus faible :\n{rmse_commune.head(5)}")
+    logger.info(f"Communes avec la RMSE la plus élevée :\n{rmse_commune.tail(5)}")
+
+    rmse_commune_path = DERIVED_DATA_LOCATION / "rmse_commune.csv"
+    rmse_commune.to_csv(rmse_commune_path, index=False)
+    mlflow.log_artifact(rmse_commune_path)
+
+    # EVALUATION WITH SKORE ---------------------------------------
+
+    logger.debug(f"\n{80 * '-'}\nÉvaluation du modèle avec skore\n{80 * '-'}")
+
+    evaluate_with_skore(pipe, X_train, y_train, X_test, y_test)
+    mlflow.log_artifact("prediction_error.png")
+
+    # MODEL SAVING ---------------------------------------
+
+    sio.dump(pipe, "model.skops")
+    logger.info("Modèle sauvegardé dans model.skops")
+
+    # The model is archived in MLflow with its environment. The API now loads
+    # it from the MLflow model registry, once it has been registered there.
+    # The skops file written just above is only used to list the types to
+    # trust: they come from our own pipeline.
+    mlflow.sklearn.log_model(
+        pipe,
+        name="model",
+        input_example=X_test.head(5),
+        skops_trusted_types=sio.get_untrusted_types(file="model.skops"),
     )
 
-# TRAINING AND EVALUATION --------------------------------------------
-
-    logging.debug(f"\n{80 * '-'}\nStarting grid search fitting phase\n{80 * '-'}")
-
-    search.fit(X_train, y_train)
-
-    logging.info(f"Best CV score: {search.best_score_:.3f}")
-    logging.info(f"Best params: {search.best_params_}")
-
-    best_model = search.best_estimator_
-
-    best_params = search.best_params_
-
-    for param, value in best_params.items():
-        mlflow.log_param(param, value)
-
-    # Sauvegarde du meilleur pipeline complet
-    sio.dump(best_model, "model.skops")
-
-    test_score = best_model.score(X_test, y_test)
-    train_score = best_model.score(X_train, y_train)
-
-    logging.info(
-        f"{test_score:.1%} de bonnes réponses sur les données de test (best model)"
-    )
-    logging.info(
-        f"{train_score:.1%} de bonnes réponses sur les données de train (best model)"
-    )
-
-    # Log metrics
-    mlflow.log_metric("accuracy", test_score)
-
-    matrix = confusion_matrix(y_test, best_model.predict(X_test))
-
-    logging.info("Matrice de confusion (test):")
-    logging.info(matrix)
-
-    logging.debug(f"\n{80 * '-'}\nFILE ENDED SUCCESSFULLY!\n{80 * '-'}")
-
-    # Log confusion matrix as an artifact
-    matrix_path = "confusion_matrix.txt"
-    with open(matrix_path, "w") as f:
-        f.write(str(matrix))
-    mlflow.log_artifact(matrix_path)
-
-    # Log model
-    mlflow.sklearn.log_model(best_model, "model")
+logger.debug(f"\n{80 * '-'}\nFIN DU SCRIPT !\n{80 * '-'}")
