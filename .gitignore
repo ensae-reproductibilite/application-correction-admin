@@ -8,3 +8,4 @@ data/*
 *prediction_error.png
 
 *.coverage
+.claude/
