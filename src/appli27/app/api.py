@@ -43,9 +43,20 @@ MODEL_URI = f"models:/{MODEL_NAME}@{MODEL_ALIAS}"
 con = duckdb.connect(database=":memory:")
 
 # MLflow reads the tracking server address from the MLFLOW_TRACKING_URI
-# environment variable. The types trusted by skops were saved with the model
-# at training time, so no trusted list is needed here.
-logger.info(f"Chargement du modèle {MODEL_URI} depuis {mlflow.get_tracking_uri()}")
+# environment variable. Without it, MLflow silently falls back to an empty
+# local database where the production model does not exist: better stop here
+# with a clear message.
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
+if not MLFLOW_TRACKING_URI:
+    raise RuntimeError(
+        "La variable d'environnement MLFLOW_TRACKING_URI n'est pas définie : "
+        "impossible de joindre le serveur MLFlow"
+    )
+logger.info(f"Connexion au serveur MLFlow {MLFLOW_TRACKING_URI}")
+
+# The types trusted by skops were saved with the model at training time,
+# so no trusted list is needed here.
+logger.info(f"Chargement du modèle {MODEL_URI}")
 model = mlflow.sklearn.load_model(MODEL_URI)
 version_production = (
     mlflow.MlflowClient().get_model_version_by_alias(MODEL_NAME, MODEL_ALIAS).version
