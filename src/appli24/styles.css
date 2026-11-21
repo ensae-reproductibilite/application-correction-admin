@@ -57,19 +57,21 @@ html:has(.carte) { overflow: hidden; }
 .bandeau .erreur { color: #bd0026; }
 
 /* Infobulles de MapLibre */
-/* Couleurs issues du thème Bootstrap (clair ou sombre), y compris la pointe */
-.maplibregl-popup-content {
+/* Couleurs issues du thème Bootstrap (clair ou sombre), y compris la pointe.
+   Préfixe .carte : la feuille de MapLibre, chargée après celle-ci, imposerait sinon son fond blanc */
+.carte .maplibregl-popup-content {
   font-size: 0.85em; padding: 6px 10px;
   background: var(--bs-body-bg); color: var(--bs-body-color);
+  pointer-events: none; /* l'infobulle ne capte pas le survol de la carte */
 }
-.maplibregl-popup-anchor-top .maplibregl-popup-tip,
-.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
-.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--bs-body-bg); }
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--bs-body-bg); }
-.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--bs-body-bg); }
-.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--bs-body-bg); }
+.carte .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.carte .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.carte .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--bs-body-bg); }
+.carte .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.carte .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.carte .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--bs-body-bg); }
+.carte .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--bs-body-bg); }
+.carte .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--bs-body-bg); }
 
 /* Tableau des ventes : compact, sans case "tout sélectionner" */
 .bandeau table { font-size: 0.8em; }

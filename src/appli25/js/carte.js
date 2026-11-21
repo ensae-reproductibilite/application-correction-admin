@@ -27,7 +27,7 @@ function ajouterLegende(conteneur) {
   const legende = document.createElement("div");
   legende.className = "legende";
   const degrade = ECHELLE.map(([v, c]) => `${c} ${((v - 3000) / 11000) * 100}%`).join(", ");
-  legende.innerHTML = `<strong>Prix médian au m² des parcelles</strong>
+  legende.innerHTML = `<strong>Prix médian au m² (sections, puis parcelles)</strong>
     <div class="degrade" style="background: linear-gradient(to right, ${degrade})"></div>
     <div class="bornes"><span>3 000 €</span><span>14 000 €</span></div>`;
   conteneur.append(legende);
@@ -120,6 +120,7 @@ export async function creerCarte(conteneur, { surSection, surParcelle }) {
   });
   carte.addControl(new maplibregl.NavigationControl({ showCompass: false }));
   carte.marqueur = new maplibregl.Marker({ color: "#2780e3" });
+  carte.infobulle = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
   carte.etat = { survol: null, section: null };
   ajouterLegende(conteneur);
   await new Promise((resolve) => carte.on("load", resolve));
@@ -140,13 +141,18 @@ export async function creerCarte(conteneur, { surSection, surParcelle }) {
   const surDepartements = ["in", ["slice", ["get", "commune"], 0, 2], ["literal", DEPARTEMENTS]];
   const etat = (nom) => ["boolean", ["feature-state", nom], false];
 
-  // Sections : remplissage invisible (pour le survol et le clic), contour et code
+  // Prix médian de la section (état `prix`) : colore le remplissage des sections, puis des parcelles
+  const prix = ["to-number", ["coalesce", ["feature-state", "prix"], -1]];
+  const echelle = ["interpolate", ["linear"], prix, ...ECHELLE.flat()];
+
+  // Sections : remplissage coloré par le prix médian (et support du survol et du clic), contour et code
   carte.addLayer({
     id: "sections-fill", type: "fill", source: "cadastre", "source-layer": "sections",
     minzoom: 11, filter: surDepartements,
     paint: {
-      "fill-color": "#2780e3",
-      "fill-opacity": ["case", etat("selection"), 0.2, etat("survol"), 0.12, 0],
+      "fill-color": ["case", [">", prix, 0], echelle, "#2780e3"],
+      // La section choisie s'efface derrière ses parcelles colorées ; les autres sont colorées par leur prix médian
+      "fill-opacity": ["case", etat("selection"), 0.08, etat("survol"), 0.85, [">", prix, 0], 0.55, 0],
     },
   });
   carte.addLayer({
@@ -167,8 +173,6 @@ export async function creerCarte(conteneur, { surSection, surParcelle }) {
   // Parcelles : seulement celles de la section sélectionnée (filtre mis à jour à la sélection).
   // Elles sont colorées par leur prix médian si elles ont reçu un état `prix`.
   const aucune = ["==", ["get", "id"], ""];
-  const prix = ["to-number", ["coalesce", ["feature-state", "prix"], -1]];
-  const echelle = ["interpolate", ["linear"], prix, ...ECHELLE.flat()];
   carte.addLayer({
     id: "parcelles-fill", type: "fill", source: "cadastre", "source-layer": "parcelles",
     minzoom: ZOOM_PARCELLES, filter: aucune,
@@ -187,12 +191,16 @@ export async function creerCarte(conteneur, { surSection, surParcelle }) {
   carte.on("mousemove", "sections-fill", (e) => {
     carte.getCanvas().style.cursor = "pointer";
     const id = e.features[0].id;
-    if (carte.etat.survol === id) return;
-    changerEtat(carte, "survol", id);
+    if (carte.etat.survol !== id) changerEtat(carte, "survol", id);
+    // L'infobulle suit le curseur, même quand la section survolée ne change pas
+    const etatSection = carte.getFeatureState({ source: "cadastre", sourceLayer: "sections", id });
+    carte.infobulle.setLngLat(e.lngLat).setText(texteSurvol(etatSection, id === carte.etat.section, carte.ventesChargees));
+    if (!carte.infobulle.isOpen()) carte.infobulle.addTo(carte);
   });
   carte.on("mouseleave", "sections-fill", () => {
     carte.getCanvas().style.cursor = "";
     changerEtat(carte, "survol", null);
+    carte.infobulle.remove();
   });
 
   // Clic : une parcelle de la section sélectionnée sinon une section
@@ -220,6 +228,16 @@ function changerEtat(carte, nom, id) {
   carte.etat[cle] = id;
 }
 
+// Texte de l'infobulle d'une section survolée (state : état de la section, avec n une fois les ventes chargées)
+function texteSurvol(state, choisie, chargees) {
+  if (!chargees) return "Chargement des ventes…";
+  if (!state.n) return "Aucune transaction dans cette section cadastrale.";
+  const n = `${state.n.toLocaleString("fr-FR")} transaction${state.n > 1 ? "s" : ""} dans la section cadastrale.`;
+  return choisie
+    ? `${n} Cliquer sur une parcelle pour explorer les prédictions de notre modèle !`
+    : `${n} Cliquer pour explorer les prédictions de notre modèle !`;
+}
+
 // Sélectionne une section : surbrillance, zoom, et affichage de ses parcelles seules.
 // L'emprise est calculée sur les morceaux de la section présents dans les tuiles chargées.
 function choisirSection(carte, id, surSection) {
@@ -233,6 +251,14 @@ function choisirSection(carte, id, surSection) {
     carte.fitBounds(emprise(morceaux.map((f) => f.geometry)), { padding: 60, maxZoom: 17 });
   }
   surSection(id);
+}
+
+// Associe à chaque section son prix médian et son nombre de ventes (coloration et infobulle)
+export function colorerSections(carte, statistiques) {
+  for (const { id_section, mediane, n } of statistiques) {
+    carte.setFeatureState({ source: "cadastre", sourceLayer: "sections", id: id_section }, { prix: mediane, n });
+  }
+  carte.ventesChargees = true;
 }
 
 // Associe à chaque parcelle de la section son prix médian (efface les précédents)

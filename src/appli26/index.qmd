@@ -6,8 +6,8 @@ page-layout: custom
 
 ```{ojs}
 //| output: false
-import {chargerVentes, nombreVentes, medianeParParcelleDeSection, ventesDeParcelle, prixParPrefixe} from "./js/donnees.js"
-import {creerCarte, appliquerTheme, colorerParcelles, deselectionnerParcelle, placerMarqueur, allerA} from "./js/carte.js"
+import {chargerVentes, nombreVentes, statistiquesParSection, medianeParParcelleDeSection, ventesDeParcelle, prixParPrefixe} from "./js/donnees.js"
+import {creerCarte, appliquerTheme, colorerSections, colorerParcelles, deselectionnerParcelle, placerMarqueur, allerA} from "./js/carte.js"
 import {pointDepuisAdresse, estimerPrix} from "./js/prediction.js"
 import {tableVentes, blocEstimation, histogrammesPrix} from "./js/graphiques.js"
 apiRoot = "https://<APP_NAME>.lab.sspcloud.fr"
@@ -42,7 +42,7 @@ mutable parcelleChoisie = null
 {
   yield md`Chargement des ventes…`;
   const n = await nombreVentes(await chargement.promesse);
-  yield md`${n.toLocaleString("fr-FR")} ventes chargées. Cliquez sur une section cadastrale.`;
+  yield md`${n.toLocaleString("fr-FR")} ventes chargées. Survolez une section cadastrale puis cliquez dessus.`;
 }
 ```
 :::
@@ -75,6 +75,12 @@ viewof carte = {
   appliquer();
   invalidation.then(() => observateur.disconnect());
 }
+```
+
+```{ojs}
+//| output: false
+// Ventes chargées : coloration de toutes les sections par leur prix médian
+colorerSections(carte, await statistiquesParSection(await chargement.promesse))
 ```
 
 ```{ojs}

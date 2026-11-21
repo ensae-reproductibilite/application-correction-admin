@@ -61,6 +61,13 @@ export async function nombreVentes(conn) {
   return (await requete(conn, "SELECT COUNT(*)::INTEGER AS n FROM ventes"))[0].n;
 }
 
+// Prix médian au m² et nombre de ventes de chaque section : [{id_section, mediane, n}]
+export function statistiquesParSection(conn) {
+  return requete(conn, `
+    SELECT left(id_parcelle, 10) AS id_section, median(prix_m2) AS mediane, COUNT(*)::INTEGER AS n
+    FROM ventes GROUP BY id_section`);
+}
+
 // Prix médian au m² des parcelles d'une section : [{id_parcelle, mediane, n}]
 // (les 10 premiers caractères d'un id de parcelle forment l'id de sa section)
 export function medianeParParcelleDeSection(conn, idSection) {
